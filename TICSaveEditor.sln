@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TICSaveEditor.Core", "TICSaveEditor.Core\TICSaveEditor.Core.csproj", "{0C4587B2-EBBF-4A49-BD00-4E3F212C5B5E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TICSaveEditor.Core.Tests", "TICSaveEditor.Core.Tests\TICSaveEditor.Core.Tests.csproj", "{10B7277D-3ECE-496B-96CC-9312D5EA09CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TICSaveEditor.CLI", "TICSaveEditor.CLI\TICSaveEditor.CLI.csproj", "{74FED42B-675C-4E0A-BD91-93C85AA652CC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TICSaveEditor.GUI", "TICSaveEditor.GUI\TICSaveEditor.GUI.csproj", "{949710FA-FC44-4F0D-817D-FEDF1ED5603E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0C4587B2-EBBF-4A49-BD00-4E3F212C5B5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C4587B2-EBBF-4A49-BD00-4E3F212C5B5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C4587B2-EBBF-4A49-BD00-4E3F212C5B5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C4587B2-EBBF-4A49-BD00-4E3F212C5B5E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10B7277D-3ECE-496B-96CC-9312D5EA09CD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10B7277D-3ECE-496B-96CC-9312D5EA09CD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10B7277D-3ECE-496B-96CC-9312D5EA09CD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10B7277D-3ECE-496B-96CC-9312D5EA09CD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74FED42B-675C-4E0A-BD91-93C85AA652CC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74FED42B-675C-4E0A-BD91-93C85AA652CC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74FED42B-675C-4E0A-BD91-93C85AA652CC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74FED42B-675C-4E0A-BD91-93C85AA652CC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{949710FA-FC44-4F0D-817D-FEDF1ED5603E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{949710FA-FC44-4F0D-817D-FEDF1ED5603E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{949710FA-FC44-4F0D-817D-FEDF1ED5603E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{949710FA-FC44-4F0D-817D-FEDF1ED5603E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
