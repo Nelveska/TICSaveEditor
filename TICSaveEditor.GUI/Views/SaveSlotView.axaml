@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             xmlns:v="using:TICSaveEditor.GUI.Views"
+             x:Class="TICSaveEditor.GUI.Views.SaveSlotView"
+             x:DataType="vm:SaveSlotViewModel">
+    <DockPanel LastChildFill="True">
+        <Border DockPanel.Dock="Top" Padding="0,0,0,8">
+            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Slot: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" Text="{CompiledBinding SlotLabel}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Title: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{CompiledBinding Title}" TextTrimming="CharacterEllipsis"/>
+
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Hero: " FontWeight="Bold"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{CompiledBinding HeroName}"/>
+
+                <TextBlock Grid.Row="3" Grid.Column="0" Text="Saved / Playtime: " FontWeight="Bold"/>
+                <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Text="{CompiledBinding SaveTimestampDisplay}"/>
+                    <TextBlock Text="  ·  "/>
+                    <TextBlock Text="{CompiledBinding PlaytimeDisplay}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <v:UnitListView DataContext="{CompiledBinding}"/>
+    </DockPanel>
+</UserControl>

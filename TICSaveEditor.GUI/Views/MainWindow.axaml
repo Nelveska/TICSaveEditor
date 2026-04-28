@@ -1,17 +1,81 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+        xmlns:conv="using:TICSaveEditor.GUI.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
+        Width="1100" Height="700"
         x:Class="TICSaveEditor.GUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="TICSaveEditor.GUI">
+        Title="TICSaveEditor">
+    <Window.Resources>
+        <conv:BoolToOpacityConverter x:Key="BoolToOpacity"/>
+    </Window.Resources>
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    <DockPanel LastChildFill="True">
+        <!-- Top bar: path + Browse + Refresh -->
+        <Border DockPanel.Dock="Top" Padding="8,6" BorderBrush="#444" BorderThickness="0,0,0,1">
+            <DockPanel LastChildFill="True">
+                <Button DockPanel.Dock="Left" Content="Browse…" Margin="0,0,6,0"
+                        Command="{CompiledBinding BrowseCommand}"/>
+                <Button DockPanel.Dock="Left" Content="Refresh"
+                        Command="{CompiledBinding RefreshCommand}"
+                        IsEnabled="{CompiledBinding SaveDirectoryPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <TextBlock VerticalAlignment="Center" Margin="12,0,0,0"
+                           Text="{CompiledBinding SaveDirectoryPath}"
+                           TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Game-running banner -->
+        <Border DockPanel.Dock="Top" Background="#5A3A00" Padding="10,6"
+                IsVisible="{CompiledBinding Directory.IsGameRunning, FallbackValue=False}">
+            <TextBlock Foreground="#FFE0A0"
+                       Text="⚠ FFT is currently running. Editing while the game is open risks Steam Cloud conflicts."/>
+        </Border>
+
+        <!-- Status bar -->
+        <Border DockPanel.Dock="Bottom" Padding="8,4" BorderBrush="#444" BorderThickness="0,1,0,0">
+            <DockPanel LastChildFill="True">
+                <ProgressBar DockPanel.Dock="Right" Width="120" Height="14"
+                             IsIndeterminate="True"
+                             IsVisible="{CompiledBinding IsBusy}"/>
+                <TextBlock Text="{CompiledBinding StatusMessage}" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- Master/Detail body -->
+        <Grid ColumnDefinitions="320,1,*">
+            <!-- Left: directory file list -->
+            <Border Grid.Column="0" Padding="6">
+                <Grid RowDefinitions="Auto,*">
+                    <TextBlock Grid.Row="0" Text="Save files" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <ListBox Grid.Row="1"
+                             Name="FileList"
+                             ItemsSource="{CompiledBinding Directory.Files}"
+                             SelectedItem="{CompiledBinding SelectedFile}"
+                             DoubleTapped="OnFileListDoubleTapped">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SaveFileItemViewModel">
+                                <Border ToolTip.Tip="{CompiledBinding Tooltip}"
+                                        Padding="2"
+                                        Opacity="{CompiledBinding IsOpenable, Converter={StaticResource BoolToOpacity}}">
+                                    <StackPanel IsEnabled="{CompiledBinding IsOpenable}">
+                                        <TextBlock Text="{CompiledBinding FileName}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{CompiledBinding KindLabel}" FontSize="11" Opacity="0.75"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Rectangle Grid.Column="1" Fill="#444"/>
+
+            <!-- Right: open-file content (polymorphic via DataTemplate selector) -->
+            <ContentControl Grid.Column="2" Content="{CompiledBinding OpenFile}" Margin="6"/>
+        </Grid>
+    </DockPanel>
 </Window>

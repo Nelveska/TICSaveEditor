@@ -1,0 +1,9 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             x:Class="TICSaveEditor.GUI.Views.ResumeBattleSaveFileView"
+             x:DataType="vm:ResumeBattleSaveFileViewModel">
+    <Border Padding="20">
+        <TextBlock Text="{CompiledBinding Message}" TextWrapping="Wrap"/>
+    </Border>
+</UserControl>

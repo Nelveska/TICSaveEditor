@@ -83,7 +83,16 @@ public class SaveDirectory
             if (filePath.EndsWith(".png", StringComparison.OrdinalIgnoreCase))
             {
                 var bytes = File.ReadAllBytes(filePath);
-                payload = PngEnvelope.Extract(bytes);
+                var ffTo = PngEnvelope.Extract(bytes);
+                // Multi-file UMIF (numFiles > 1) is the in-battle auto-save history
+                // container that v0.1 cannot unpack. For vanilla TIC its only known
+                // use is autoenhanced.png — infer ResumeBattle and short-circuit
+                // before Unpack would throw NotSupportedException.
+                if (UmifContainer.PeekFileCount(ffTo) > 1)
+                {
+                    return SaveFileKind.ResumeBattle;
+                }
+                payload = UmifContainer.Unpack(ffTo);
             }
             else
             {

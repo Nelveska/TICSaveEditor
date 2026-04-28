@@ -1,0 +1,34 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             x:Class="TICSaveEditor.GUI.Views.UnitListView"
+             x:DataType="vm:SaveSlotViewModel">
+    <DockPanel LastChildFill="True">
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="40,250,200,60" Margin="6,0,6,4">
+            <TextBlock Grid.Column="0" Text="#" FontWeight="Bold"/>
+            <TextBlock Grid.Column="1" Text="Name" FontWeight="Bold"/>
+            <TextBlock Grid.Column="2" Text="Job" FontWeight="Bold"/>
+            <TextBlock Grid.Column="3" Text="Lv" FontWeight="Bold" HorizontalAlignment="Right"/>
+        </Grid>
+        <ListBox ItemsSource="{CompiledBinding Units}">
+            <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:UnitListItemViewModel">
+                    <Grid ColumnDefinitions="40,250,200,60">
+                        <TextBlock Grid.Column="0" Text="{CompiledBinding IndexLabel}" Opacity="0.6"/>
+                        <TextBlock Grid.Column="1" Text="{CompiledBinding Name}"
+                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="1" Text="— empty —" Opacity="0.4"
+                                   IsVisible="{CompiledBinding IsEmpty}"/>
+                        <TextBlock Grid.Column="2" Text="{CompiledBinding JobName}"
+                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="3" Text="{CompiledBinding LevelLabel}"
+                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   HorizontalAlignment="Right"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
+</UserControl>

@@ -20,6 +20,20 @@ internal static class UmifContainer
     private const int MainHeaderSize = 0x10;
     private const int FileEntrySize = 0x20;
 
+    /// <summary>
+    /// Reads the UMIF numFiles header field without unpacking. Returns 0 if
+    /// the bytes are too short or the magic doesn't match (caller should treat
+    /// 0 as "not a UMIF blob"). Used by SaveDirectory to discriminate multi-file
+    /// UMIF (battle auto-save history) from single-file UMIF without throwing.
+    /// </summary>
+    public static int PeekFileCount(ReadOnlySpan<byte> umifBytes)
+    {
+        if (umifBytes.Length < MainHeaderSize) return 0;
+        var magic = BinaryPrimitives.ReadUInt32LittleEndian(umifBytes.Slice(0x08, 4));
+        if (magic != UmifMagic) return 0;
+        return (int)BinaryPrimitives.ReadUInt32LittleEndian(umifBytes.Slice(0x0C, 4));
+    }
+
     public static byte[] Unpack(byte[] umifBytes)
     {
         ArgumentNullException.ThrowIfNull(umifBytes);

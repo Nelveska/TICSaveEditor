@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TICSaveEditor.GUI.ViewModels.Dialogs"
+        x:Class="TICSaveEditor.GUI.Views.Dialogs.GameRunningDialog"
+        x:DataType="vm:GameRunningDialogViewModel"
+        Title="{CompiledBinding Title}"
+        Width="520" Height="240"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel LastChildFill="True" Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Cancel" Width="100" Margin="0,0,8,0" IsCancel="True" Click="OnCancel"/>
+            <Button Content="Open anyway" Width="120" IsDefault="True" Click="OnConfirm"/>
+        </StackPanel>
+        <TextBlock Text="{CompiledBinding Message}" TextWrapping="Wrap"/>
+    </DockPanel>
+</Window>

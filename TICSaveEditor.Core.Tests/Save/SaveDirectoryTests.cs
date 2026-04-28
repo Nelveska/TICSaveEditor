@@ -103,4 +103,27 @@ public class SaveDirectoryTests : IDisposable
         var bogus = Path.Combine(_tempDir, "does-not-exist");
         Assert.Throws<DirectoryNotFoundException>(() => SaveDirectory.Scan(bogus));
     }
+
+    // Locks the M10 smoke-test fix: PeekKind must UMIF-unpack PNG payloads
+    // before reading the discriminator. Prior to the fix, every PNG fell
+    // through to SaveFileKind.Manual because offset 0x08 of the UMIF header
+    // is the magic 0x46494D55 ("UMIF"), never 0x10.
+    [Fact]
+    public void Scan_classifies_real_baseline_fixture_files()
+    {
+        var fixtureDir = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "SaveFiles", "Baseline"));
+        if (!Directory.Exists(fixtureDir)) return;
+
+        var dir = SaveDirectory.Scan(fixtureDir);
+        var enhanced = dir.Files.SingleOrDefault(f => f.FileName == "enhanced.png");
+        var auto = dir.Files.SingleOrDefault(f => f.FileName == "autoenhanced.png");
+        Assert.NotNull(enhanced);
+        Assert.NotNull(auto);
+        Assert.Equal(SaveFileKind.Manual, enhanced!.Kind);
+        Assert.Equal(SaveFileKind.ResumeBattle, auto!.Kind);
+        Assert.True(enhanced.IsEditable);
+        Assert.False(auto.IsEditable);
+    }
+
 }

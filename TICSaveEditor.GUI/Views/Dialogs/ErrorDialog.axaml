@@ -1,0 +1,16 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TICSaveEditor.GUI.ViewModels.Dialogs"
+        x:Class="TICSaveEditor.GUI.Views.Dialogs.ErrorDialog"
+        x:DataType="vm:ErrorDialogViewModel"
+        Title="{CompiledBinding Title}"
+        Width="500" Height="220"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel LastChildFill="True" Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="OK" Width="80" IsDefault="True" IsCancel="True" Click="OnOk"/>
+        </StackPanel>
+        <TextBlock Text="{CompiledBinding Message}" TextWrapping="Wrap"/>
+    </DockPanel>
+</Window>
