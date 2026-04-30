@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 namespace TICSaveEditor.Core.Records.Layouts;
 
 [StructLayout(LayoutKind.Sequential, Pack = 1)]
-internal unsafe struct EquipSetLayout
+internal unsafe struct CombatSetLayout
 {
     public fixed byte Name[66];
     public fixed byte ItemBytes[10];

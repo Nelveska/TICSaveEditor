@@ -104,9 +104,10 @@ public class EnhancedFixtureDiagnosticsTests
     {
         // For every populated slot, dump for unit slots 0..6:
         //   Character / Sex / NameNo / CharaNameKey
-        //   ChrNameRaw (64 bytes) hex + ASCII column + CP932 attempt
-        // Primary hypothesis: ChrNameRaw transitions from zero to a renamed string
-        // at the rename boundary. NameNo / CharaNameKey unchanged across the boundary.
+        //   UnitNicknameRaw (16 bytes) hex + ASCII column + CP932 attempt
+        // Primary hypothesis: UnitNicknameRaw transitions from zero to a renamed
+        // string at the rename boundary. NameNo / CharaNameKey unchanged across
+        // the boundary.
         var save = Load();
         var populated = PopulatedSlotIndices(save);
 
@@ -126,7 +127,7 @@ public class EnhancedFixtureDiagnosticsTests
                     _out.WriteLine($"  unit {u,2}: EMPTY");
                     continue;
                 }
-                var raw = unit.ChrNameRaw;
+                var raw = unit.UnitNicknameRaw;
                 var nullIdx = Array.IndexOf(raw, (byte)0);
                 var len = nullIdx < 0 ? raw.Length : nullIdx;
                 var asciiPart = AsciiPrintable(raw.AsSpan(0, len));
@@ -139,7 +140,7 @@ public class EnhancedFixtureDiagnosticsTests
                 _out.WriteLine(
                     $"  unit {u,2}: char=0x{unit.Character:X2}  sex=0x{unit.Sex:X2}  job={unit.Job,3}  " +
                     $"NameNo={unit.NameNo,5}  CharaNameKey={unit.CharaNameKey,5}  " +
-                    $"ChrNameRaw any-nonzero={anyNonZero}  null-idx={(nullIdx < 0 ? "(none)" : nullIdx.ToString())}");
+                    $"UnitNicknameRaw any-nonzero={anyNonZero}  null-idx={(nullIdx < 0 ? "(none)" : nullIdx.ToString())}");
                 if (anyNonZero)
                 {
                     // Show first 32 bytes (covers any reasonable rename string).
@@ -236,15 +237,15 @@ public class EnhancedFixtureDiagnosticsTests
         var populated = PopulatedSlotIndices(save);
 
         _out.WriteLine("=== Slot 51 (Argath / guest position) per-save snapshot ===");
-        _out.WriteLine("save  char  resist  job   sex   level  exp  ChrNameRaw[0..15]");
-        _out.WriteLine("----  ----  ------  ----  ----  -----  ---  ----------------------------------");
+        _out.WriteLine("save  char  UnitIdx  job   sex   level  exp  UnitNicknameRaw[0..15]");
+        _out.WriteLine("----  ----  -------  ----  ----  -----  ---  ----------------------------------");
         foreach (var s in populated)
         {
             var unit = save.Slots[s].SaveWork.Battle.Units[51];
-            var raw = unit.ChrNameRaw;
+            var raw = unit.UnitNicknameRaw;
             var hex = Hex(raw.AsSpan(0, 16));
             _out.WriteLine(
-                $"{s,4}  0x{unit.Character:X2}  0x{unit.Resist:X2}    {unit.Job,3}   0x{unit.Sex:X2}  {unit.Level,5}  {unit.Exp,3}  {hex}");
+                $"{s,4}  0x{unit.Character:X2}  0x{unit.UnitIndex:X2}    {unit.Job,3}   0x{unit.Sex:X2}  {unit.Level,5}  {unit.Exp,3}  {hex}");
         }
         _out.WriteLine("");
 
@@ -331,17 +332,17 @@ public class EnhancedFixtureDiagnosticsTests
     }
 
     [Fact]
-    public void T5_resist_is_slot_index_for_active_units()
+    public void T5_UnitIndex_is_slot_index_for_active_units()
     {
-        // The slot-51 finding (Resist 0x33 == 51 when active, 0xFF when departed)
+        // The slot-51 finding (UnitIndex 0x33 == 51 when active, 0xFF when departed)
         // generalizes only if regular party slots 0..6 also carry their slot index
-        // in Resist when active. Format-notes line 253 claims "0..6 for regulars";
+        // in UnitIndex when active. Format-notes line 253 claims "0..6 for regulars";
         // confirm against this fixture.
         var save = Load();
         var populated = PopulatedSlotIndices(save);
 
-        _out.WriteLine("save  unit  char  resist  (resist == unit-index?)");
-        _out.WriteLine("----  ----  ----  ------  ----------------------");
+        _out.WriteLine("save  unit  char  UnitIndex  (UnitIndex == unit-slot?)");
+        _out.WriteLine("----  ----  ----  ---------  ------------------------");
         foreach (var s in populated)
         {
             var battle = save.Slots[s].SaveWork.Battle;
@@ -349,10 +350,10 @@ public class EnhancedFixtureDiagnosticsTests
             {
                 var unit = battle.Units[u];
                 var matchNote = unit.IsEmpty ? "(empty)"
-                              : unit.Resist == u ? "MATCH"
-                              : unit.Resist == 0xFF ? "0xFF"
+                              : unit.UnitIndex == u ? "MATCH"
+                              : unit.UnitIndex == 0xFF ? "0xFF"
                               : "OTHER";
-                _out.WriteLine($"{s,4}  {u,4}  0x{unit.Character:X2}  0x{unit.Resist:X2}    {matchNote}");
+                _out.WriteLine($"{s,4}  {u,4}  0x{unit.Character:X2}  0x{unit.UnitIndex:X2}    {matchNote}");
             }
             _out.WriteLine("");
         }
@@ -361,32 +362,32 @@ public class EnhancedFixtureDiagnosticsTests
     }
 
     [Fact]
-    public void T4_ramza_chr_name_and_slot51_resist_consistency()
+    public void T4_ramza_nickname_and_slot51_UnitIndex_consistency()
     {
         // Quick edges:
-        //   - Ramza (idx 0) ChrNameRaw should be zero across all 10 slots
+        //   - Ramza (idx 0) UnitNicknameRaw should be zero across all 10 slots
         //     (story characters can't be renamed in-game per user 2026-04-30).
-        //   - Slot 51 Resist behaviour: per fft-save-format-notes.md:253, Resist
-        //     is "0xFF for guests/empty". Confirm whether it stays 0xFF when
-        //     Argath is in party, or if it transitions on departure.
+        //   - Slot 51 UnitIndex behaviour: per fft-save-format-notes.md:253,
+        //     UnitIndex is "0xFF for guests/empty". Confirm whether it stays
+        //     0xFF when Argath is in party, or if it transitions on departure.
         var save = Load();
         var populated = PopulatedSlotIndices(save);
 
-        _out.WriteLine("=== Ramza (unit 0) ChrNameRaw byte 0 across saves ===");
+        _out.WriteLine("=== Ramza (unit 0) UnitNicknameRaw byte 0 across saves ===");
         foreach (var s in populated)
         {
             var unit = save.Slots[s].SaveWork.Battle.Units[0];
-            var raw = unit.ChrNameRaw;
+            var raw = unit.UnitNicknameRaw;
             var anyNonZero = raw.Any(b => b != 0);
-            _out.WriteLine($"  slot {s}: char=0x{unit.Character:X2}  ChrNameRaw any-nonzero={anyNonZero}  byte[0]=0x{raw[0]:X2}");
+            _out.WriteLine($"  slot {s}: char=0x{unit.Character:X2}  UnitNicknameRaw any-nonzero={anyNonZero}  byte[0]=0x{raw[0]:X2}");
         }
         _out.WriteLine("");
 
-        _out.WriteLine("=== Slot 51 Resist byte across saves ===");
+        _out.WriteLine("=== Slot 51 UnitIndex byte across saves ===");
         foreach (var s in populated)
         {
             var unit = save.Slots[s].SaveWork.Battle.Units[51];
-            _out.WriteLine($"  slot {s}: char=0x{unit.Character:X2}  resist=0x{unit.Resist:X2}");
+            _out.WriteLine($"  slot {s}: char=0x{unit.Character:X2}  UnitIndex=0x{unit.UnitIndex:X2}");
         }
 
         Assert.True(true, "Informational dump.");

@@ -6,39 +6,69 @@ namespace TICSaveEditor.Core.Tests.Records;
 public class UnitSaveDataNameMetadataTests
 {
     [Fact]
-    public void ChrNameRaw_setter_throws_for_length_other_than_64()
+    public void UnitNicknameRaw_setter_throws_for_length_other_than_16()
     {
         var unit = new UnitSaveData(new byte[600]);
-        Assert.Throws<ArgumentException>(() => unit.ChrNameRaw = new byte[63]);
-        Assert.Throws<ArgumentException>(() => unit.ChrNameRaw = new byte[65]);
-        Assert.Throws<ArgumentException>(() => unit.ChrNameRaw = Array.Empty<byte>());
+        Assert.Throws<ArgumentException>(() => unit.UnitNicknameRaw = new byte[15]);
+        Assert.Throws<ArgumentException>(() => unit.UnitNicknameRaw = new byte[17]);
+        Assert.Throws<ArgumentException>(() => unit.UnitNicknameRaw = Array.Empty<byte>());
     }
 
     [Fact]
-    public void ChrNameRaw_returns_independent_copy()
+    public void CustomJobNameRaw_setter_throws_for_length_other_than_16()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        Assert.Throws<ArgumentException>(() => unit.CustomJobNameRaw = new byte[15]);
+        Assert.Throws<ArgumentException>(() => unit.CustomJobNameRaw = new byte[17]);
+        Assert.Throws<ArgumentException>(() => unit.CustomJobNameRaw = Array.Empty<byte>());
+    }
+
+    [Fact]
+    public void UnitNameTrailingRaw_setter_throws_for_length_other_than_32()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        Assert.Throws<ArgumentException>(() => unit.UnitNameTrailingRaw = new byte[31]);
+        Assert.Throws<ArgumentException>(() => unit.UnitNameTrailingRaw = new byte[33]);
+        Assert.Throws<ArgumentException>(() => unit.UnitNameTrailingRaw = Array.Empty<byte>());
+    }
+
+    [Fact]
+    public void UnitNicknameRaw_returns_independent_copy()
     {
         var bytes = new byte[600];
-        for (int i = 0; i < 64; i++) bytes[0xDC + i] = (byte)(0x40 + i);
+        for (int i = 0; i < 16; i++) bytes[0xDC + i] = (byte)(0x40 + i);
         var unit = new UnitSaveData(bytes);
 
-        var first = unit.ChrNameRaw;
+        var first = unit.UnitNicknameRaw;
         first[0] = 0xFF;
 
-        var second = unit.ChrNameRaw;
+        var second = unit.UnitNicknameRaw;
         Assert.Equal(0x40, second[0]);
     }
 
     [Fact]
-    public void ChrNameRaw_round_trips_64_bytes_verbatim()
+    public void Name_sub_fields_round_trip_at_their_offsets()
     {
         var unit = new UnitSaveData(new byte[600]);
-        var name = new byte[64];
-        for (int i = 0; i < 64; i++) name[i] = (byte)i;
-        unit.ChrNameRaw = name;
+
+        var nickname = new byte[16];
+        for (int i = 0; i < 16; i++) nickname[i] = (byte)(0x10 + i);
+        unit.UnitNicknameRaw = nickname;
+
+        var customJob = new byte[16];
+        for (int i = 0; i < 16; i++) customJob[i] = (byte)(0x30 + i);
+        unit.CustomJobNameRaw = customJob;
+
+        var trailing = new byte[32];
+        for (int i = 0; i < 32; i++) trailing[i] = (byte)(0x60 + i);
+        unit.UnitNameTrailingRaw = trailing;
 
         var output = new byte[600];
         unit.WriteTo(output);
-        for (int i = 0; i < 64; i++) Assert.Equal(i, output[0xDC + i]);
+
+        for (int i = 0; i < 16; i++) Assert.Equal((byte)(0x10 + i), output[0xDC + i]);
+        for (int i = 0; i < 16; i++) Assert.Equal((byte)(0x30 + i), output[0xEC + i]);
+        for (int i = 0; i < 32; i++) Assert.Equal((byte)(0x60 + i), output[0xFC + i]);
     }
 
     [Fact]
@@ -53,7 +83,7 @@ public class UnitSaveDataNameMetadataTests
         unit.UnitOrderId = 5;
         unit.UnitStartingTeam = 6;
         unit.UnitJoinId = 7;
-        unit.CurrentEquipSetNumber = 2;
+        unit.CurrentCombatSet = 2;
 
         var output = new byte[600];
         unit.WriteTo(output);

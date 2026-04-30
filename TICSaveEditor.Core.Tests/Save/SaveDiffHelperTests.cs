@@ -208,7 +208,7 @@ public class SaveDiffHelperTests
             if (u.IsEmpty) continue;
             var equip = string.Join(", ", Enumerable.Range(0, 7).Select(s => $"0x{u.GetEquipItem(s):X4}"));
             _out.WriteLine(
-                $"{i,3}  0x{u.Character:X2}  0x{u.Sex:X2}  0x{u.Zodiac:X2}    {u.Job,3}  {u.Exp,3}  {u.Level,5}  {u.HpMaxBase,9}  {u.MpMaxBase,9}  {u.WtBase,9}  {u.AtBase,9}  {u.MatBase,9}  [{equip}]");
+                $"{i,3}  0x{u.Character:X2}  0x{u.Sex:X2}  0x{u.ZodiacSign:X2}    {u.Job,3}  {u.Exp,3}  {u.Level,5}  {u.HpMaxBase,9}  {u.MpMaxBase,9}  {u.WtBase,9}  {u.AtBase,9}  {u.MatBase,9}  [{equip}]");
         }
 
         Assert.True(true);
@@ -234,7 +234,7 @@ public class SaveDiffHelperTests
                 for (int u = 0; u < 54; u++)
                 {
                     if (battle.Units[u].IsEmpty) continue;
-                    var z = battle.Units[u].Zodiac;
+                    var z = battle.Units[u].ZodiacSign;
                     var sign = (z & 0xF0) >> 4;
                     Assert.True(sign <= 11,
                         $"{fixture} slot {slotIdx} unit {u} zodiac=0x{z:X2} sign={sign} > 11");

@@ -64,30 +64,30 @@ public class UnitSaveDataValidationTests
     }
 
     [Fact]
-    public void Validate_returns_error_when_Zodiac_high_nibble_is_12()
+    public void Validate_returns_error_when_ZodiacSign_high_nibble_is_12()
     {
         // Zodiac sign lives in the high nibble of byte 0x06 (sign << 4).
         // 0xC0 = high-nibble 12 = invalid sign (signs are 0..11). Low nibble is preserved.
         var unit = NewValidUnit();
-        unit.Zodiac = 0xC0;
-        Assert.Contains(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.Zodiac));
+        unit.ZodiacSign = 0xC0;
+        Assert.Contains(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.ZodiacSign));
     }
 
     [Fact]
-    public void Validate_does_not_error_on_high_zodiac_byte_when_sign_is_valid()
+    public void Validate_does_not_error_on_high_ZodiacSign_byte_when_sign_is_valid()
     {
         // Byte 0x81: sign = 8 (Sagittarius), low-nibble flag = 1. Both valid.
         // This is the value pattern observed in our real-save fixtures.
         var unit = NewValidUnit();
-        unit.Zodiac = 0x81;
-        Assert.DoesNotContain(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.Zodiac));
+        unit.ZodiacSign = 0x81;
+        Assert.DoesNotContain(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.ZodiacSign));
     }
 
     [Fact]
-    public void Validate_returns_error_when_CurrentEquipSetNumber_is_3()
+    public void Validate_returns_error_when_CurrentCombatSet_is_3()
     {
         var unit = NewValidUnit();
-        unit.CurrentEquipSetNumber = 3;
-        Assert.Contains(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.CurrentEquipSetNumber));
+        unit.CurrentCombatSet = 3;
+        Assert.Contains(unit.Validate().Issues, i => i.FieldName == nameof(UnitSaveData.CurrentCombatSet));
     }
 }

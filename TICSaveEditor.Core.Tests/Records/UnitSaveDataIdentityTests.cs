@@ -17,10 +17,10 @@ public class UnitSaveDataIdentityTests
     }
 
     [Fact]
-    public void Resist_round_trips_at_offset_0x01()
+    public void UnitIndex_round_trips_at_offset_0x01()
     {
         var unit = new UnitSaveData(new byte[600]);
-        unit.Resist = 0x05;
+        unit.UnitIndex = 0x05;
         var output = new byte[600];
         unit.WriteTo(output);
         Assert.Equal(0x05, output[0x01]);
@@ -47,20 +47,20 @@ public class UnitSaveDataIdentityTests
     }
 
     [Fact]
-    public void Reserved05_round_trips_at_offset_0x05_unchecked()
+    public void Birthday_round_trips_at_offset_0x05_unchecked()
     {
         var unit = new UnitSaveData(new byte[600]);
-        unit.Reserved05 = 0xAB;
+        unit.Birthday = 0xAB;
         var output = new byte[600];
         unit.WriteTo(output);
         Assert.Equal(0xAB, output[0x05]);
     }
 
     [Fact]
-    public void Zodiac_round_trips_at_offset_0x06()
+    public void ZodiacSign_round_trips_at_offset_0x06()
     {
         var unit = new UnitSaveData(new byte[600]);
-        unit.Zodiac = 7;
+        unit.ZodiacSign = 7;
         var output = new byte[600];
         unit.WriteTo(output);
         Assert.Equal(7, output[0x06]);
@@ -72,7 +72,7 @@ public class UnitSaveDataIdentityTests
         var unit = new UnitSaveData(new byte[600]);
         unit.ReactionAbility = 0x1234;
         unit.SupportAbility = 0x5678;
-        unit.MoveAbility = 0x9ABC;
+        unit.MovementAbility = 0x9ABC;
 
         var output = new byte[600];
         unit.WriteTo(output);

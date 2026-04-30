@@ -59,7 +59,7 @@ public class UnitSaveDataStatsTests
         unit.WtBase = 0x070809;
         unit.AtBase = 0x0A0B0C;
         unit.MatBase = 0x0D0E0F;
-        unit.JobChangeFlag = 0x101112;
+        unit.UnlockedJobs = 0x101112;
 
         var output = new byte[600];
         unit.WriteTo(output);
@@ -73,11 +73,11 @@ public class UnitSaveDataStatsTests
     }
 
     [Fact]
-    public void JobChangeFlag_round_trips_as_24bit_value()
+    public void UnlockedJobs_round_trips_as_24bit_value()
     {
         var unit = new UnitSaveData(new byte[600]);
-        unit.JobChangeFlag = 0xABCDEF;
-        Assert.Equal(0xABCDEF, unit.JobChangeFlag);
+        unit.UnlockedJobs = 0xABCDEF;
+        Assert.Equal(0xABCDEF, unit.UnlockedJobs);
     }
 
     [Fact]

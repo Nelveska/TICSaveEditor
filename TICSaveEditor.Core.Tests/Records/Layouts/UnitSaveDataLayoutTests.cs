@@ -12,38 +12,38 @@ public class UnitSaveDataLayoutTests
     }
 
     [Fact]
-    public void EquipSetLayout_size_is_88_bytes()
+    public void CombatSetLayout_size_is_88_bytes()
     {
-        Assert.Equal(88, Marshal.SizeOf<EquipSetLayout>());
+        Assert.Equal(88, Marshal.SizeOf<CombatSetLayout>());
     }
 
     [Fact]
-    public void EquipSetLayout_Name_is_at_offset_0()
+    public void CombatSetLayout_Name_is_at_offset_0()
     {
-        Assert.Equal(0, (int)Marshal.OffsetOf<EquipSetLayout>(nameof(EquipSetLayout.Name)));
+        Assert.Equal(0, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Name)));
     }
 
     [Fact]
-    public void EquipSetLayout_ItemBytes_is_at_offset_0x42()
+    public void CombatSetLayout_ItemBytes_is_at_offset_0x42()
     {
-        Assert.Equal(0x42, (int)Marshal.OffsetOf<EquipSetLayout>(nameof(EquipSetLayout.ItemBytes)));
+        Assert.Equal(0x42, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.ItemBytes)));
     }
 
     [Fact]
-    public void EquipSetLayout_AbilityBytes_is_at_offset_0x4C()
+    public void CombatSetLayout_AbilityBytes_is_at_offset_0x4C()
     {
-        Assert.Equal(0x4C, (int)Marshal.OffsetOf<EquipSetLayout>(nameof(EquipSetLayout.AbilityBytes)));
+        Assert.Equal(0x4C, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.AbilityBytes)));
     }
 
     [Fact]
-    public void EquipSetLayout_Job_is_at_offset_0x56()
+    public void CombatSetLayout_Job_is_at_offset_0x56()
     {
-        Assert.Equal(0x56, (int)Marshal.OffsetOf<EquipSetLayout>(nameof(EquipSetLayout.Job)));
+        Assert.Equal(0x56, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Job)));
     }
 
     [Fact]
-    public void EquipSetLayout_IsDoubleHand_is_at_offset_0x57()
+    public void CombatSetLayout_IsDoubleHand_is_at_offset_0x57()
     {
-        Assert.Equal(0x57, (int)Marshal.OffsetOf<EquipSetLayout>(nameof(EquipSetLayout.IsDoubleHand)));
+        Assert.Equal(0x57, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.IsDoubleHand)));
     }
 }

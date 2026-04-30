@@ -7,7 +7,7 @@ public static class PartyOperations
 {
     // Bulk ops gate on `IsInActiveParty(slotIndex)` — per
     // decisions_unit_index_active_flag.md, a unit slot can hold non-empty data
-    // (Character != 0) yet not be in the current party (Resist == 0xFF, e.g.
+    // (Character != 0) yet not be in the current party (UnitIndex == 0xFF, e.g.
     // departed guests like Argath, dismissed recruits). Bulk ops skip those.
 
     private static string SkipReason(UnitSaveData u, int slotIndex)

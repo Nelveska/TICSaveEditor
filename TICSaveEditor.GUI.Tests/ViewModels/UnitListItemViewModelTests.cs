@@ -134,8 +134,8 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
     // ===== Rename + active-filter coverage against the 10-slot enhanced.png =====
     // Per the user's notes 2026-04-30: renames are visible from save 2 onward;
     // affected unit indices are 1, 2, 3, 5 (units 4 and 6 not renamed but later
-    // dismissed). Argath at slot 51 is active in save 3 and inactive (Resist=0xFF)
-    // from save 4 onward.
+    // dismissed). Argath at slot 51 is active in save 3 and inactive
+    // (UnitIndex=0xFF) from save 4 onward.
 
     private ManualSaveFileViewModel LoadEnhancedAtRoot()
     {
@@ -174,12 +174,12 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
     }
 
     [Fact]
-    public void Hero_unit_short_circuits_even_with_populated_ChrNameRaw()
+    public void Hero_unit_short_circuits_even_with_populated_UnitNicknameRaw()
     {
         var vm = LoadEnhancedAtRoot();
         var slot2 = vm.Slots[2];
-        // Ramza's ChrNameRaw is empirically zero across all 10 saves, so the
-        // short-circuit isn't actually fighting against UnitNickname here —
+        // Ramza's UnitNicknameRaw is empirically zero across all 10 saves, so the
+        // short-circuit isn't actually fighting against a rename string here —
         // but the test pins the cascade order.
         Assert.Equal(0x01, slot2.Units[0].Model.Character);
         Assert.Equal("Ramza", slot2.Units[0].Name);
@@ -190,11 +190,11 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
     {
         var vm = LoadEnhancedAtRoot();
 
-        // Save 3: Argath joins (Resist=0x33=51). Save 4 onward: Resist=0xFF.
+        // Save 3: Argath joins (UnitIndex=0x33=51). Save 4 onward: UnitIndex=0xFF.
         Assert.True(vm.Slots[3].Units[51].IsActive,
             "save 3 should have Argath active in slot 51");
         Assert.False(vm.Slots[4].Units[51].IsActive,
-            "save 4 should have Argath inactive (Resist=0xFF)");
+            "save 4 should have Argath inactive (UnitIndex=0xFF)");
         Assert.False(vm.Slots[9].Units[51].IsActive,
             "save 9 should have Argath inactive");
 
@@ -209,7 +209,7 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
         var vm = LoadEnhancedAtRoot();
 
         // Saves 0 and 1: female recruits at slots 4 and 6 active. Save 2 onward:
-        // dismissed (Resist=0xFF) but Character byte preserved.
+        // dismissed (UnitIndex=0xFF) but Character byte preserved.
         Assert.True(vm.Slots[0].Units[4].IsActive);
         Assert.True(vm.Slots[1].Units[6].IsActive);
         Assert.False(vm.Slots[2].Units[4].IsActive);
@@ -219,31 +219,31 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
     }
 
     [Fact]
-    public void Mutating_Resist_raises_INPC_for_IsActive_and_IsInactive()
+    public void Mutating_UnitIndex_raises_INPC_for_IsActive_and_IsInactive()
     {
         var vm = LoadEnhancedAtRoot();
         var unit = vm.Slots[3].Units[51];   // active Argath
         var fired = new List<string?>();
         unit.PropertyChanged += (_, e) => fired.Add(e.PropertyName);
 
-        unit.Model.Resist = 0xFF;            // simulate the departure transition
+        unit.Model.UnitIndex = 0xFF;         // simulate the departure transition
 
         Assert.Contains(nameof(UnitListItemViewModel.IsActive), fired);
         Assert.Contains(nameof(UnitListItemViewModel.IsInactive), fired);
     }
 
     [Fact]
-    public void Mutating_ChrNameRaw_raises_INPC_for_Name()
+    public void Mutating_UnitNicknameRaw_raises_INPC_for_Name()
     {
         var vm = LoadEnhancedAtRoot();
         var unit = vm.Slots[2].Units[1];  // "Mateus"
         var fired = new List<string?>();
         unit.PropertyChanged += (_, e) => fired.Add(e.PropertyName);
 
-        var newBytes = new byte[64];
+        var newBytes = new byte[16];
         var ascii = System.Text.Encoding.ASCII.GetBytes("Cidolfus");
         Array.Copy(ascii, newBytes, ascii.Length);
-        unit.Model.ChrNameRaw = newBytes;
+        unit.Model.UnitNicknameRaw = newBytes;
 
         Assert.Contains(nameof(UnitListItemViewModel.Name), fired);
         Assert.Equal("Cidolfus", unit.Name);

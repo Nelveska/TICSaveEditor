@@ -40,7 +40,7 @@ public class RealFixtureValidationTests
                 if (unit.IsEmpty) continue;
                 var issues = unit.Validate().Issues;
                 Assert.DoesNotContain(issues,
-                    i => i.FieldName == nameof(UnitSaveData.Zodiac));
+                    i => i.FieldName == nameof(UnitSaveData.ZodiacSign));
             }
         }
     }

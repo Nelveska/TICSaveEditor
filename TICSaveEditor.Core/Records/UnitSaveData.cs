@@ -141,9 +141,11 @@ public class UnitSaveData : INotifyPropertyChanged
         return slot < 0 ? (int?)null : slot;
     }
     private const int AbilityFlagBytesPerJob = 3;
-    private const int ChrNameLength = 64;
+    private const int UnitNicknameLength = 16;
+    private const int CustomJobNameLength = 16;
+    private const int UnitNameTrailingLength = 32;
     private const int MaxStatBase = 0xFFFFFF;
-    private const int EquipSetCount = 3;
+    private const int CombatSetCount = 3;
 
     private UnitSaveDataLayout _layout;
 
@@ -152,7 +154,7 @@ public class UnitSaveData : INotifyPropertyChanged
     private readonly JobPointEntry[] _jobPointEntries;
     private readonly TotalJobPointEntry[] _totalJobPointEntries;
     private readonly JobAbilityFlagsEntry[] _abilityFlagsEntries;
-    private readonly EquipSet[] _equipSetEntries;
+    private readonly CombatSet[] _combatSetEntries;
 
     private int _suspendDepth;
     private readonly HashSet<string> _suspendedCollections = new();
@@ -193,10 +195,10 @@ public class UnitSaveData : INotifyPropertyChanged
         AbilityFlags = new ReadOnlyObservableCollection<JobAbilityFlagsEntry>(
             new ObservableCollection<JobAbilityFlagsEntry>(_abilityFlagsEntries));
 
-        _equipSetEntries = new EquipSet[EquipSetCount];
-        for (int i = 0; i < EquipSetCount; i++) _equipSetEntries[i] = new EquipSet(this, i);
-        EquipSets = new ReadOnlyObservableCollection<EquipSet>(
-            new ObservableCollection<EquipSet>(_equipSetEntries));
+        _combatSetEntries = new CombatSet[CombatSetCount];
+        for (int i = 0; i < CombatSetCount; i++) _combatSetEntries[i] = new CombatSet(this, i);
+        CombatSets = new ReadOnlyObservableCollection<CombatSet>(
+            new ObservableCollection<CombatSet>(_combatSetEntries));
     }
 
     internal void WriteTo(Span<byte> destination)
@@ -237,10 +239,10 @@ public class UnitSaveData : INotifyPropertyChanged
         set { if (_layout.Character == value) return; _layout.Character = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsEmpty)); }
     }
 
-    public byte Resist
+    public byte UnitIndex
     {
-        get => _layout.Resist;
-        set { if (_layout.Resist == value) return; _layout.Resist = value; OnPropertyChanged(); }
+        get => _layout.UnitIndex;
+        set { if (_layout.UnitIndex == value) return; _layout.UnitIndex = value; OnPropertyChanged(); }
     }
 
     public byte Job
@@ -261,22 +263,22 @@ public class UnitSaveData : INotifyPropertyChanged
         set { if (_layout.Sex == value) return; _layout.Sex = value; OnPropertyChanged(); }
     }
 
-    public byte Reserved05
+    public byte Birthday
     {
-        get => _layout.Reserved05;
-        set { if (_layout.Reserved05 == value) return; _layout.Reserved05 = value; OnPropertyChanged(); }
+        get => _layout.Birthday;
+        set { if (_layout.Birthday == value) return; _layout.Birthday = value; OnPropertyChanged(); }
     }
 
-    public byte Zodiac
+    public byte ZodiacSign
     {
-        get => _layout.Zodiac;
-        set { if (_layout.Zodiac == value) return; _layout.Zodiac = value; OnPropertyChanged(); }
+        get => _layout.ZodiacSign;
+        set { if (_layout.ZodiacSign == value) return; _layout.ZodiacSign = value; OnPropertyChanged(); }
     }
 
-    public byte SubCommand
+    public byte SecondaryAction
     {
-        get => _layout.SubCommand;
-        set { if (_layout.SubCommand == value) return; _layout.SubCommand = value; OnPropertyChanged(); }
+        get => _layout.SecondaryAction;
+        set { if (_layout.SecondaryAction == value) return; _layout.SecondaryAction = value; OnPropertyChanged(); }
     }
 
     public ushort ReactionAbility
@@ -291,10 +293,10 @@ public class UnitSaveData : INotifyPropertyChanged
         set { if (_layout.SupportAbility == value) return; _layout.SupportAbility = value; OnPropertyChanged(); }
     }
 
-    public ushort MoveAbility
+    public ushort MovementAbility
     {
-        get => _layout.MoveAbility;
-        set { if (_layout.MoveAbility == value) return; _layout.MoveAbility = value; OnPropertyChanged(); }
+        get => _layout.MovementAbility;
+        set { if (_layout.MovementAbility == value) return; _layout.MovementAbility = value; OnPropertyChanged(); }
     }
 
     // ===== Equipment (0x0E..0x1B) =====
@@ -380,10 +382,10 @@ public class UnitSaveData : INotifyPropertyChanged
         set { ValidateStatBase(value); unsafe { fixed (byte* p = _layout.MatBase) Write24(p, value); } OnPropertyChanged(); }
     }
 
-    public int JobChangeFlag
+    public int UnlockedJobs
     {
-        get { unsafe { fixed (byte* p = _layout.JobChangeFlag) return Read24(p); } }
-        set { ValidateStatBase(value); unsafe { fixed (byte* p = _layout.JobChangeFlag) Write24(p, value); } OnPropertyChanged(); }
+        get { unsafe { fixed (byte* p = _layout.UnlockedJobs) return Read24(p); } }
+        set { ValidateStatBase(value); unsafe { fixed (byte* p = _layout.UnlockedJobs) Write24(p, value); } OnPropertyChanged(); }
     }
 
     private static void ValidateStatBase(int value, [CallerMemberName] string? name = null)
@@ -508,16 +510,21 @@ public class UnitSaveData : INotifyPropertyChanged
 
     // ===== Name + slot metadata (0xDC..0x125) =====
 
-    public byte[] ChrNameRaw
+    /// <summary>
+    /// 16 bytes at offset 0xDC holding the player-set rename string (ASCII,
+    /// null-terminated). The community TIC struct names this sub-field
+    /// <c>UnitNickname</c>; see <c>decisions_chr_name_rename_storage.md</c>.
+    /// </summary>
+    public byte[] UnitNicknameRaw
     {
         get
         {
-            var copy = new byte[ChrNameLength];
+            var copy = new byte[UnitNicknameLength];
             unsafe
             {
-                fixed (byte* p = _layout.ChrName)
+                fixed (byte* p = _layout.UnitNickname)
                 {
-                    new ReadOnlySpan<byte>(p, ChrNameLength).CopyTo(copy);
+                    new ReadOnlySpan<byte>(p, UnitNicknameLength).CopyTo(copy);
                 }
             }
             return copy;
@@ -525,16 +532,92 @@ public class UnitSaveData : INotifyPropertyChanged
         set
         {
             if (value is null) throw new ArgumentNullException(nameof(value));
-            if (value.Length != ChrNameLength)
+            if (value.Length != UnitNicknameLength)
                 throw new ArgumentException(
-                    $"ChrNameRaw must be exactly {ChrNameLength} bytes (got {value.Length}).",
+                    $"UnitNicknameRaw must be exactly {UnitNicknameLength} bytes (got {value.Length}).",
                     nameof(value));
 
             unsafe
             {
-                fixed (byte* p = _layout.ChrName)
+                fixed (byte* p = _layout.UnitNickname)
                 {
-                    value.AsSpan().CopyTo(new Span<byte>(p, ChrNameLength));
+                    value.AsSpan().CopyTo(new Span<byte>(p, UnitNicknameLength));
+                }
+            }
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 16 bytes at offset 0xEC. Empirically zero-filled across all observed
+    /// real saves; community TIC struct names this <c>CustomJobName</c>.
+    /// Exposed for byte-faithful round-trip; no v0.1 rendering uses these bytes.
+    /// </summary>
+    public byte[] CustomJobNameRaw
+    {
+        get
+        {
+            var copy = new byte[CustomJobNameLength];
+            unsafe
+            {
+                fixed (byte* p = _layout.CustomJobName)
+                {
+                    new ReadOnlySpan<byte>(p, CustomJobNameLength).CopyTo(copy);
+                }
+            }
+            return copy;
+        }
+        set
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (value.Length != CustomJobNameLength)
+                throw new ArgumentException(
+                    $"CustomJobNameRaw must be exactly {CustomJobNameLength} bytes (got {value.Length}).",
+                    nameof(value));
+
+            unsafe
+            {
+                fixed (byte* p = _layout.CustomJobName)
+                {
+                    value.AsSpan().CopyTo(new Span<byte>(p, CustomJobNameLength));
+                }
+            }
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// 32 bytes at offset 0xFC, anonymous in the community TIC struct
+    /// (<c>field_FC</c>). Exposed for byte-faithful round-trip; no v0.1
+    /// rendering uses these bytes.
+    /// </summary>
+    public byte[] UnitNameTrailingRaw
+    {
+        get
+        {
+            var copy = new byte[UnitNameTrailingLength];
+            unsafe
+            {
+                fixed (byte* p = _layout.UnitNameTrailing)
+                {
+                    new ReadOnlySpan<byte>(p, UnitNameTrailingLength).CopyTo(copy);
+                }
+            }
+            return copy;
+        }
+        set
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            if (value.Length != UnitNameTrailingLength)
+                throw new ArgumentException(
+                    $"UnitNameTrailingRaw must be exactly {UnitNameTrailingLength} bytes (got {value.Length}).",
+                    nameof(value));
+
+            unsafe
+            {
+                fixed (byte* p = _layout.UnitNameTrailing)
+                {
+                    value.AsSpan().CopyTo(new Span<byte>(p, UnitNameTrailingLength));
                 }
             }
             OnPropertyChanged();
@@ -589,10 +672,10 @@ public class UnitSaveData : INotifyPropertyChanged
         set { if (_layout.UnitJoinId == value) return; _layout.UnitJoinId = value; OnPropertyChanged(); }
     }
 
-    public byte CurrentEquipSetNumber
+    public byte CurrentCombatSet
     {
-        get => _layout.CurrentEquipSetNumber;
-        set { if (_layout.CurrentEquipSetNumber == value) return; _layout.CurrentEquipSetNumber = value; OnPropertyChanged(); }
+        get => _layout.CurrentCombatSet;
+        set { if (_layout.CurrentCombatSet == value) return; _layout.CurrentCombatSet = value; OnPropertyChanged(); }
     }
 
     public ushort CharaNameKey
@@ -601,131 +684,131 @@ public class UnitSaveData : INotifyPropertyChanged
         set { if (_layout.CharaNameKey == value) return; _layout.CharaNameKey = value; OnPropertyChanged(); }
     }
 
-    // ===== EquipSets (3 × 88 bytes at 0x126..0x22D) =====
+    // ===== CombatSets (3 × 88 bytes at 0x126..0x22D) =====
 
-    public ReadOnlyObservableCollection<EquipSet> EquipSets { get; }
+    public ReadOnlyObservableCollection<CombatSet> CombatSets { get; }
 
-    private ref EquipSetLayout GetEquipSetRef(int index)
+    private ref CombatSetLayout GetCombatSetRef(int index)
     {
         switch (index)
         {
-            case 0: return ref _layout.EquipSet0;
-            case 1: return ref _layout.EquipSet1;
-            case 2: return ref _layout.EquipSet2;
+            case 0: return ref _layout.CombatSet0;
+            case 1: return ref _layout.CombatSet1;
+            case 2: return ref _layout.CombatSet2;
             default: throw new ArgumentOutOfRangeException(nameof(index));
         }
     }
 
-    internal string GetEquipSetName(int index)
+    internal string GetCombatSetName(int index)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
+        ref var slot = ref GetCombatSetRef(index);
         unsafe
         {
             fixed (byte* p = slot.Name)
             {
-                var span = new ReadOnlySpan<byte>(p, EquipSet.NameByteLength);
+                var span = new ReadOnlySpan<byte>(p, CombatSet.NameByteLength);
                 var nullIdx = span.IndexOf((byte)0);
-                var len = nullIdx < 0 ? EquipSet.NameByteLength : nullIdx;
+                var len = nullIdx < 0 ? CombatSet.NameByteLength : nullIdx;
                 return Encoding.ASCII.GetString(span.Slice(0, len));
             }
         }
     }
 
-    internal void SetEquipSetName(int index, string value)
+    internal void SetCombatSetName(int index, string value)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
+        ref var slot = ref GetCombatSetRef(index);
         var v = value ?? string.Empty;
-        var clampedLen = Math.Min(v.Length, EquipSet.NameByteLength - 1);
+        var clampedLen = Math.Min(v.Length, CombatSet.NameByteLength - 1);
 
         unsafe
         {
             fixed (byte* p = slot.Name)
             {
-                var dest = new Span<byte>(p, EquipSet.NameByteLength);
+                var dest = new Span<byte>(p, CombatSet.NameByteLength);
                 var bytesWritten = Encoding.ASCII.GetBytes(v.AsSpan(0, clampedLen), dest);
-                if (bytesWritten < EquipSet.NameByteLength)
+                if (bytesWritten < CombatSet.NameByteLength)
                 {
                     dest[bytesWritten] = 0;
                 }
             }
         }
-        NotifyOrQueue(nameof(EquipSets), _equipSetEntries[index]);
+        NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
     }
 
-    internal byte GetEquipSetJob(int index)
+    internal byte GetCombatSetJob(int index)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        return GetEquipSetRef(index).Job;
+        return GetCombatSetRef(index).Job;
     }
 
-    internal void SetEquipSetJob(int index, byte value)
+    internal void SetCombatSetJob(int index, byte value)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
+        ref var slot = ref GetCombatSetRef(index);
         if (slot.Job == value) return;
         slot.Job = value;
-        NotifyOrQueue(nameof(EquipSets), _equipSetEntries[index]);
+        NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
     }
 
-    internal bool GetEquipSetIsDoubleHand(int index)
+    internal bool GetCombatSetIsDoubleHand(int index)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        return GetEquipSetRef(index).IsDoubleHand != 0;
+        return GetCombatSetRef(index).IsDoubleHand != 0;
     }
 
-    internal void SetEquipSetIsDoubleHand(int index, bool value)
+    internal void SetCombatSetIsDoubleHand(int index, bool value)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
+        ref var slot = ref GetCombatSetRef(index);
         byte newByte = value ? (byte)1 : (byte)0;
         if (slot.IsDoubleHand == newByte) return;
         slot.IsDoubleHand = newByte;
-        NotifyOrQueue(nameof(EquipSets), _equipSetEntries[index]);
+        NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
     }
 
-    internal byte[] GetEquipSetItemBytes(int index)
+    internal byte[] GetCombatSetItemBytes(int index)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
-        var copy = new byte[EquipSet.ItemBytesLength];
+        ref var slot = ref GetCombatSetRef(index);
+        var copy = new byte[CombatSet.ItemBytesLength];
         unsafe
         {
             fixed (byte* p = slot.ItemBytes)
             {
-                new ReadOnlySpan<byte>(p, EquipSet.ItemBytesLength).CopyTo(copy);
+                new ReadOnlySpan<byte>(p, CombatSet.ItemBytesLength).CopyTo(copy);
             }
         }
         return copy;
     }
 
-    internal byte[] GetEquipSetAbilityBytes(int index)
+    internal byte[] GetCombatSetAbilityBytes(int index)
     {
-        if ((uint)index >= (uint)EquipSetCount)
+        if ((uint)index >= (uint)CombatSetCount)
             throw new ArgumentOutOfRangeException(nameof(index));
 
-        ref var slot = ref GetEquipSetRef(index);
-        var copy = new byte[EquipSet.AbilityBytesLength];
+        ref var slot = ref GetCombatSetRef(index);
+        var copy = new byte[CombatSet.AbilityBytesLength];
         unsafe
         {
             fixed (byte* p = slot.AbilityBytes)
             {
-                new ReadOnlySpan<byte>(p, EquipSet.AbilityBytesLength).CopyTo(copy);
+                new ReadOnlySpan<byte>(p, CombatSet.AbilityBytesLength).CopyTo(copy);
             }
         }
         return copy;
@@ -737,17 +820,16 @@ public class UnitSaveData : INotifyPropertyChanged
 
     /// <summary>
     /// Returns true if this unit is currently active in the player's party at the
-    /// given slot index. The byte at offset 0x01 (community-attested name
-    /// <c>UnitIndex</c>; exposed here as <see cref="Resist"/> per legacy Nenkai
-    /// labelling) holds the unit's own slot index when active and 0xFF when the
-    /// unit is inactive (departed guest, dismissed recruit, stowed) or the slot
-    /// is empty. Verified 2026-04-30 against <c>SaveFiles/enhanced.png</c>; see
+    /// given slot index. <see cref="UnitIndex"/> (offset 0x01) holds the unit's
+    /// own slot index when active and 0xFF when the unit is inactive (departed
+    /// guest, dismissed recruit, stowed) or the slot is empty. Verified
+    /// 2026-04-30 against <c>SaveFiles/enhanced.png</c>; see
     /// <c>decisions_unit_index_active_flag.md</c>.
     /// </summary>
     public bool IsInActiveParty(int ownSlotIndex)
     {
         if (_layout.Character == 0) return false;
-        return _layout.Resist == (byte)ownSlotIndex;
+        return _layout.UnitIndex == (byte)ownSlotIndex;
     }
 
     // ===== Validation =====
@@ -768,15 +850,15 @@ public class UnitSaveData : INotifyPropertyChanged
         // Zodiac sign is encoded in the high nibble of byte 0x06; the low nibble is
         // a sub-flag (varies between 0x0 and 0x1 across observed real saves) and
         // must be preserved by editors. See decisions_glain_psx_formulas.md.
-        var zodiacSign = (_layout.Zodiac & 0xF0) >> 4;
+        var zodiacSign = (_layout.ZodiacSign & 0xF0) >> 4;
         if (zodiacSign > 11)
-            issues.Add(new ValidationIssue(nameof(Zodiac),
-                $"Zodiac sign must be in [0, 11] (got high-nibble {zodiacSign} from byte 0x{_layout.Zodiac:X2})."));
+            issues.Add(new ValidationIssue(nameof(ZodiacSign),
+                $"Zodiac sign must be in [0, 11] (got high-nibble {zodiacSign} from byte 0x{_layout.ZodiacSign:X2})."));
 
-        if (_layout.CurrentEquipSetNumber > 2)
+        if (_layout.CurrentCombatSet > 2)
             issues.Add(new ValidationIssue(
-                nameof(CurrentEquipSetNumber),
-                $"CurrentEquipSetNumber must be in [0, 2] (got {_layout.CurrentEquipSetNumber})."));
+                nameof(CurrentCombatSet),
+                $"CurrentCombatSet must be in [0, 2] (got {_layout.CurrentCombatSet})."));
 
         return issues.Count == 0
             ? ValidationResult.Empty

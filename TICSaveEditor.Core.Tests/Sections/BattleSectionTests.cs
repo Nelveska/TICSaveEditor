@@ -80,7 +80,7 @@ public class BattleSectionTests
         };
 
         battle.Units[0].Level = 10;
-        battle.Units[5].Resist = 1;
+        battle.Units[5].UnitIndex = 1;
         battle.Units[20].Exp = 50;
 
         Assert.Equal(3, hits);
@@ -107,20 +107,20 @@ public class BattleSectionTests
     }
 
     [Fact]
-    public void IsActive_true_when_unit_resist_matches_slot()
+    public void IsActive_true_when_unit_UnitIndex_matches_slot()
     {
         var battle = new BattleSection(BlankBattleBytes());
         battle.Units[3].Character = 0x80;
-        battle.Units[3].Resist = 3;
+        battle.Units[3].UnitIndex = 3;
         Assert.True(battle.IsActive(3));
     }
 
     [Fact]
-    public void IsActive_false_when_unit_resist_is_0xFF()
+    public void IsActive_false_when_unit_UnitIndex_is_0xFF()
     {
         var battle = new BattleSection(BlankBattleBytes());
         battle.Units[51].Character = 0x07;     // departed-guest pattern
-        battle.Units[51].Resist = 0xFF;
+        battle.Units[51].UnitIndex = 0xFF;
         Assert.False(battle.IsActive(51));
     }
 
