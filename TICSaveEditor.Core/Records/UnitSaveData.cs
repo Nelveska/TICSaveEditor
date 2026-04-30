@@ -17,7 +17,129 @@ public class UnitSaveData : INotifyPropertyChanged
     private const int EquipItemCount = 7;
     private const int JobLevelCount = 12;
     private const int JobPointCount = 23;
-    private const int AbilityFlagJobCount = 22;
+    public const int AbilityFlagJobCount = 22;
+
+    /// <summary>
+    /// Job byte → per-unit ability_flag slot index, or -1 when there is no mapping
+    /// (monsters, Na-shi/Unknown placeholders, no-job sentinel, out-of-range bytes).
+    /// </summary>
+    /// <remarks>
+    /// Slot is determined by the unit's class NAME, per <c>Docs/JobList.md</c>
+    /// (user-supplied 2026-04-29) and confirmed by 3 independent community sources:
+    /// <list type="bullet">
+    ///   <item>Canonical generic class names (Squire..Mime) → slots 0..19 by name.</item>
+    ///   <item>Dark Knight → slot 20. Onion Knight → slot 21. Both classes are
+    ///         disabled in TIC but the slots are reserved (the engine inherits the
+    ///         layout from a version that shipped them).</item>
+    ///   <item>Story-unique class names (Holy Knight, Sword Saint, Machinist,
+    ///         Templar, Princess, Dragonkin, etc.) ALL share slot 0 with Squire.
+    ///         The game interprets the bits per the unit's CURRENT class, so
+    ///         Agrias's Holy Sword learned-flags live in slot 0 and the game
+    ///         renders them as Holy Sword while she is a Holy Knight. JP storage
+    ///         works the same way.</item>
+    ///   <item>Multiple Job IDs per unique class name (e.g. 3 Holy Knights) are
+    ///         visibility/chapter variants — same storage location.</item>
+    ///   <item>Monsters / Na-shi / Unknown / no-job sentinel → no slot.</item>
+    /// </list>
+    /// <para>
+    /// Mod-edge caveat: because all story-unique classes share slot 0, a hypothetical
+    /// mod that gave a single character two non-generic skillsets simultaneously
+    /// would see learned-bit edits for skillset A also flip the matching bit of
+    /// skillset B (same address). Vanilla-faithful; documented but not handled.
+    /// See <c>decisions_jobbyte_vs_abilityflag_index.md</c>.
+    /// </para>
+    /// </remarks>
+    private static readonly sbyte[] JobByteToAbilityFlagSlot = BuildJobSlotTable();
+
+    private static sbyte[] BuildJobSlotTable()
+    {
+        var t = new sbyte[256];
+        Array.Fill<sbyte>(t, -1);
+
+        // Slot 0 = Squire / story Squire variants / ALL story-unique class names.
+        // (See xmldoc above for the class-name rule and slot-0 fallback for
+        //  story-unique classes.)
+        ReadOnlySpan<byte> slot0 = stackalloc byte[]
+        {
+            // Story Squire variants (Ramza Ch.1, Ramza Ch.2 & 3, Delita Ch.1, Argath)
+            0x01, 0x02, 0x04, 0x07,
+            // Story-unique class names (Gallant Knight, Holy Knight, Ark Knight,
+            // Rune Knight, Duke, Princess, Sword Saint, High Confessor, Dragonkin,
+            // Celebrant, Fell Knight, Netherseer, Elder, Cleric, Astrologer,
+            // Machinist, Cardinal, Skyseer, Commoner, Grand Duke, Holy Knight,
+            // Templar, White Knight, Witch of the Coven, Machinist, Viscount,
+            // Divine Knight, Nightblade, Sorcerer, White Knight, Skyseer,
+            // Divine Knight, Machinist, Cleric, Assassin, Divine Knight,
+            // Cleric, False Saint, Soldier, Ark Knight, Holy Knight)
+            0x03, 0x05, 0x06, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E,
+            0x0F, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+            0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21, 0x22,
+            0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C,
+            0x2D, 0x2E, 0x2F, 0x30, 0x31, 0x32, 0x33, 0x34,
+            // Boss/special unique classes (Gigas, Death Seraph, Bringer of Order,
+            // High Seraph, The Impure, The Wroth, Holy Dragon, Arch Seraph)
+            0x3C, 0x3E, 0x40, 0x41, 0x43, 0x45, 0x48, 0x49,
+            // Late-range unique (Byblos, Automaton, Reaver, Serpentarius,
+            // Holy Dragon, Archaeodaemon, Ultima Demon)
+            0x90, 0x91, 0x96, 0x97, 0x98, 0x99, 0x9A,
+            // 0xA-range unique (Sky Pirate, Game Hunter, Deathknight,
+            // Templar, Celebrant, Dark Dragon)
+            0xA2, 0xA3, 0xA5, 0xA6, 0xA7, 0xA8,
+            // Canonical Squire generic
+            0x4A,
+        };
+        foreach (byte b in slot0) t[b] = 0;
+
+        // Canonical generics by class name.
+        ReadOnlySpan<byte> chemist     = stackalloc byte[] { 0x35, 0x4B };
+        ReadOnlySpan<byte> knight      = stackalloc byte[] { 0x3D, 0x4C };
+        ReadOnlySpan<byte> archer      = stackalloc byte[] { 0x3F, 0x4D };
+        ReadOnlySpan<byte> whiteMage   = stackalloc byte[] { 0x36, 0x4F };
+        ReadOnlySpan<byte> blackMage   = stackalloc byte[] { 0x37, 0x42, 0x50 };
+        ReadOnlySpan<byte> timeMage    = stackalloc byte[] { 0x44, 0x51 };
+        ReadOnlySpan<byte> summoner    = stackalloc byte[] { 0x47, 0x52 };
+        ReadOnlySpan<byte> mystic      = stackalloc byte[] { 0x38, 0x46, 0x55 };
+        foreach (byte b in chemist)   t[b] = 1;
+        foreach (byte b in knight)    t[b] = 2;
+        foreach (byte b in archer)    t[b] = 3;
+        t[0x4E] = 4;                              // Monk
+        foreach (byte b in whiteMage) t[b] = 5;
+        foreach (byte b in blackMage) t[b] = 6;
+        foreach (byte b in timeMage)  t[b] = 7;
+        foreach (byte b in summoner)  t[b] = 8;
+        t[0x53] = 9;                              // Thief
+        t[0x54] = 10;                             // Orator
+        foreach (byte b in mystic)    t[b] = 11;
+        t[0x56] = 12;                             // Geomancer
+        t[0x57] = 13;                             // Dragoon
+        t[0x58] = 14;                             // Samurai
+        t[0x59] = 15;                             // Ninja
+        t[0x5A] = 16;                             // Arithmetician
+        t[0x5B] = 17;                             // Bard
+        t[0x5C] = 18;                             // Dancer
+        t[0x5D] = 19;                             // Mime
+
+        // Slots 20-21: Dark Knight + Onion Knight (disabled in TIC, slot-reserved).
+        t[0xA0] = 20;                             // Dark Knight
+        t[0xA1] = 21;                             // Onion Knight
+        t[0xA4] = 21;                             // Onion Knight (variant)
+
+        // -1 (unchanged) for: 0x00 (no-job sentinel), 0x39/0x3A/0x3B/0x9B..0x9F
+        // (Unknown class), 0x5E..0x8D (monsters), 0x8E/0x8F/0x92..0x95 (Na-shi
+        // placeholders), 0xA9..0xFF (out of JobList range).
+        return t;
+    }
+
+    /// <summary>
+    /// Resolve a save-format Job byte to the per-unit ability_flag slot index
+    /// (0..21), or null if the job has no mapping (unique story-character class,
+    /// monster, no-job sentinel, etc.). Pure save-format lookup; no GameDataContext.
+    /// </summary>
+    public static int? GetAbilityFlagSlotForJob(byte jobByte)
+    {
+        int slot = JobByteToAbilityFlagSlot[jobByte];
+        return slot < 0 ? (int?)null : slot;
+    }
     private const int AbilityFlagBytesPerJob = 3;
     private const int ChrNameLength = 64;
     private const int MaxStatBase = 0xFFFFFF;
@@ -668,24 +790,54 @@ public class UnitSaveData : INotifyPropertyChanged
         }
     }
 
-    public void LearnAllAbilitiesForJob(int jobId)
+    /// <summary>
+    /// Learn every ability of the given ability-flag slot.
+    /// <para>
+    /// NOTE: <paramref name="abilityFlagIndex"/> is the 0-based slot in the
+    /// 22-entry ability_flag array, NOT the unit's <see cref="Job"/> byte. The
+    /// save-format Job byte is JobData-table-aligned (JobData ID 0 is a blank
+    /// entry; generic jobs are IDs 1–22), but ability_flag storage is dense
+    /// [0..21] starting at Squire. Use <see cref="TryLearnAllAbilitiesForCurrentJob"/>
+    /// when you want "learn the abilities of this unit's current job" — it
+    /// handles the off-by-one and the no-job / story-character cases.
+    /// </para>
+    /// </summary>
+    public void LearnAllAbilitiesForJob(int abilityFlagIndex)
     {
-        if ((uint)jobId >= (uint)AbilityFlagJobCount)
-            throw new ArgumentOutOfRangeException(nameof(jobId));
+        if ((uint)abilityFlagIndex >= (uint)AbilityFlagJobCount)
+            throw new ArgumentOutOfRangeException(nameof(abilityFlagIndex));
 
         using var _ = SuspendNotifications();
         for (int b = 0; b < AbilityFlagBytesPerJob; b++)
-            SetAbilityFlagByte(jobId, b, 0xFF);
+            SetAbilityFlagByte(abilityFlagIndex, b, 0xFF);
     }
 
-    public void ForgetAllAbilitiesForJob(int jobId)
+    /// <summary>
+    /// Forget every ability of the given ability-flag slot.
+    /// See <see cref="LearnAllAbilitiesForJob"/> for the index/Job-byte distinction.
+    /// </summary>
+    public void ForgetAllAbilitiesForJob(int abilityFlagIndex)
     {
-        if ((uint)jobId >= (uint)AbilityFlagJobCount)
-            throw new ArgumentOutOfRangeException(nameof(jobId));
+        if ((uint)abilityFlagIndex >= (uint)AbilityFlagJobCount)
+            throw new ArgumentOutOfRangeException(nameof(abilityFlagIndex));
 
         using var _ = SuspendNotifications();
         for (int b = 0; b < AbilityFlagBytesPerJob; b++)
-            SetAbilityFlagByte(jobId, b, 0x00);
+            SetAbilityFlagByte(abilityFlagIndex, b, 0x00);
+    }
+
+    /// <summary>
+    /// Learn every ability of the unit's current job. Resolves the save-format
+    /// <see cref="Job"/> byte to its per-unit ability_flag slot via
+    /// <see cref="GetAbilityFlagSlotForJob"/>. Returns false (no mutation) when
+    /// the job has no mapping — story-character unique classes, monsters, no-job
+    /// sentinel, etc.
+    /// </summary>
+    public bool TryLearnAllAbilitiesForCurrentJob()
+    {
+        if (GetAbilityFlagSlotForJob(Job) is not int slot) return false;
+        LearnAllAbilitiesForJob(slot);
+        return true;
     }
 
     public void MaxAllJobPoints()

@@ -48,6 +48,8 @@ public abstract class SaveFile : INotifyPropertyChanged
     public abstract void Save();
     public abstract void SaveAs(string path);
 
+    public void MarkDirty() => IsDirty = true;
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     protected void OnPropertyChanged([CallerMemberName] string? name = null)

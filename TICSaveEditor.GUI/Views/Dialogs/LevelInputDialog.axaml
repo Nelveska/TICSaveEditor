@@ -1,0 +1,22 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TICSaveEditor.GUI.ViewModels.Dialogs"
+        x:Class="TICSaveEditor.GUI.Views.Dialogs.LevelInputDialog"
+        x:DataType="vm:LevelInputDialogViewModel"
+        Title="{CompiledBinding Title}"
+        Width="420" Height="200"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel LastChildFill="True" Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Cancel" Width="100" Margin="0,0,8,0" IsCancel="True" Click="OnCancel"/>
+            <Button Content="Apply" Width="100" IsDefault="True" Click="OnConfirm"/>
+        </StackPanel>
+        <StackPanel Spacing="10">
+            <TextBlock Text="{CompiledBinding Message}" TextWrapping="Wrap"/>
+            <NumericUpDown Value="{CompiledBinding Level}"
+                           Minimum="1" Maximum="99" Increment="1"
+                           FormatString="0" HorizontalAlignment="Left" Width="120"/>
+        </StackPanel>
+    </DockPanel>
+</Window>

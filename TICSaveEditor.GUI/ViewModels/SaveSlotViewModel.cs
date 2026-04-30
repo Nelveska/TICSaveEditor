@@ -1,22 +1,29 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Text;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using TICSaveEditor.Core.GameData;
+using TICSaveEditor.Core.Operations;
 using TICSaveEditor.Core.Save;
 using TICSaveEditor.Core.Sections;
 
 namespace TICSaveEditor.GUI.ViewModels;
 
 /// <summary>
-/// Wraps a single <see cref="SaveSlot"/> for display. ResumeWorld synthesises a
-/// <see cref="SaveSlot"/> with <see cref="SaveSlot.Index"/> = -1 to reuse this VM.
-/// All bindings are one-way for M10.
+/// Wraps a single <see cref="SaveSlot"/> for display + per-slot bulk operations.
+/// ResumeWorld synthesises a <see cref="SaveSlot"/> with <see cref="SaveSlot.Index"/> = -1
+/// to reuse this VM. Bulk-op buttons live here because the op target is
+/// <see cref="SaveWork"/> (one slot's payload) — see decisions_m11_per_slot_op_buttons.md.
 /// </summary>
-public class SaveSlotViewModel : ViewModelBase
+public partial class SaveSlotViewModel : ViewModelBase
 {
-    public SaveSlotViewModel(SaveSlot model, GameDataContext gameData)
+    private readonly SaveFile? _parentFile;
+
+    public SaveSlotViewModel(SaveSlot model, GameDataContext gameData, SaveFile? parentFile = null)
     {
         Model = model;
+        _parentFile = parentFile;
         var unitVms = new UnitListItemViewModel[BattleSection.UnitCount];
         for (int i = 0; i < BattleSection.UnitCount; i++)
         {
@@ -33,6 +40,19 @@ public class SaveSlotViewModel : ViewModelBase
     public bool IsNotEmpty => !Model.IsEmpty;
     public string SlotLabel => Index < 0 ? "Resume" : $"Slot {Index}";
     public string Title => Model.SlotTitle;
+
+    /// <summary>
+    /// View-side hook: ask the user for an integer level (1–99) via a modal.
+    /// Returns null if the user cancels. Set by <c>MainWindow.axaml.cs</c> and
+    /// propagated through the parent file VM after each slot is constructed.
+    /// </summary>
+    public Func<Task<int?>>? AskLevelAsync { get; set; }
+
+    /// <summary>
+    /// View-side hook: show an OperationResult modal with the op label as title.
+    /// Set by <c>MainWindow.axaml.cs</c> via the parent file VM.
+    /// </summary>
+    public Func<string, OperationResult, Task>? ShowOperationResultAsync { get; set; }
 
     public string SaveTimestampDisplay
     {
@@ -82,4 +102,36 @@ public class SaveSlotViewModel : ViewModelBase
     }
 
     public ReadOnlyObservableCollection<UnitListItemViewModel> Units { get; }
+
+    [RelayCommand(CanExecute = nameof(CanRunBulkOp))]
+    private async Task SetAllToLevelAsync()
+    {
+        if (AskLevelAsync is null) return;
+        var level = await AskLevelAsync();
+        if (level is null) return;
+        var result = PartyOperations.SetAllToLevel(Model.SaveWork, level.Value);
+        if (result.Succeeded && result.UnitsAffected > 0) _parentFile?.MarkDirty();
+        if (ShowOperationResultAsync is not null)
+            await ShowOperationResultAsync("Set all to level", result);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunBulkOp))]
+    private async Task MaxAllJobPointsAsync()
+    {
+        var result = PartyOperations.MaxAllJobPoints(Model.SaveWork);
+        if (result.Succeeded && result.UnitsAffected > 0) _parentFile?.MarkDirty();
+        if (ShowOperationResultAsync is not null)
+            await ShowOperationResultAsync("Max all job points", result);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRunBulkOp))]
+    private async Task LearnAllAbilitiesCurrentJobAsync()
+    {
+        var result = PartyOperations.LearnAllAbilitiesCurrentJob(Model.SaveWork);
+        if (result.Succeeded && result.UnitsAffected > 0) _parentFile?.MarkDirty();
+        if (ShowOperationResultAsync is not null)
+            await ShowOperationResultAsync("Learn all abilities (current job)", result);
+    }
+
+    private bool CanRunBulkOp() => !IsEmpty;
 }

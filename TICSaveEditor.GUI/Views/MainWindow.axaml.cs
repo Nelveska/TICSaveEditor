@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -11,10 +12,13 @@ namespace TICSaveEditor.GUI.Views;
 
 public partial class MainWindow : Window
 {
+    private bool _confirmedClose;
+
     public MainWindow()
     {
         InitializeComponent();
         Opened += OnWindowOpened;
+        Closing += OnWindowClosing;
     }
 
     private void OnWindowOpened(object? sender, EventArgs e)
@@ -71,6 +75,54 @@ public partial class MainWindow : Window
             var dlg = new ErrorDialog { DataContext = new ErrorDialogViewModel { Message = message } };
             await dlg.ShowDialog(this);
         };
+
+        vm.ConfirmDiscardChangesAsync = async () =>
+        {
+            var dlgVm = new ConfirmDialogViewModel
+            {
+                Title = "Unsaved changes",
+                Message = "You have unsaved changes. Discard them and continue?",
+                ConfirmText = "Discard",
+                CancelText = "Cancel",
+            };
+            var dlg = new ConfirmDialog { DataContext = dlgVm };
+            await dlg.ShowDialog(this);
+            return dlgVm.Confirmed;
+        };
+
+        vm.AskLevelAsync = async () =>
+        {
+            var dlgVm = new LevelInputDialogViewModel();
+            var dlg = new LevelInputDialog { DataContext = dlgVm };
+            await dlg.ShowDialog(this);
+            return dlgVm.Confirmed ? dlgVm.Level : (int?)null;
+        };
+
+        vm.ShowOperationResultAsync = async (label, result) =>
+        {
+            var dlgVm = new OperationResultDialogViewModel(label, result);
+            var dlg = new OperationResultDialog { DataContext = dlgVm };
+            await dlg.ShowDialog(this);
+        };
+
+        // If a file was loaded before WireHooks ran (default-path scan + auto-open),
+        // its slot VMs missed the AskLevelAsync / ShowOperationResultAsync setters.
+        // Re-propagate now that the funcs are assigned.
+        vm.RewireOpenFileSlotFuncs();
+    }
+
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    {
+        if (_confirmedClose) return;
+        if (DataContext is not MainWindowViewModel vm) return;
+        if (!vm.IsDirty) return;
+
+        e.Cancel = true;
+        var ok = await vm.ConfirmDiscardIfDirtyAsync();
+        if (!ok) return;
+
+        _confirmedClose = true;
+        Close();
     }
 
     private void OnFileListDoubleTapped(object? sender, TappedEventArgs e)

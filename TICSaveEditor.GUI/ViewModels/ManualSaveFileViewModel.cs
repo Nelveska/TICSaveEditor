@@ -16,7 +16,7 @@ public partial class ManualSaveFileViewModel : SaveFileViewModel
         var slotVms = new SaveSlotViewModel[ManualSaveFile.SlotCount];
         for (int i = 0; i < ManualSaveFile.SlotCount; i++)
         {
-            slotVms[i] = new SaveSlotViewModel(model.Slots[i], gameData);
+            slotVms[i] = new SaveSlotViewModel(model.Slots[i], gameData, model);
         }
         Slots = new ReadOnlyObservableCollection<SaveSlotViewModel>(
             new ObservableCollection<SaveSlotViewModel>(slotVms));

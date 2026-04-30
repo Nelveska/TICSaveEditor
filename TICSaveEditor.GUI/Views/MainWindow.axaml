@@ -8,7 +8,7 @@
         Width="1100" Height="700"
         x:Class="TICSaveEditor.GUI.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="TICSaveEditor">
+        Title="{CompiledBinding WindowTitle}">
     <Window.Resources>
         <conv:BoolToOpacityConverter x:Key="BoolToOpacity"/>
     </Window.Resources>
@@ -19,9 +19,12 @@
             <DockPanel LastChildFill="True">
                 <Button DockPanel.Dock="Left" Content="Browse…" Margin="0,0,6,0"
                         Command="{CompiledBinding BrowseCommand}"/>
-                <Button DockPanel.Dock="Left" Content="Refresh"
+                <Button DockPanel.Dock="Left" Content="Refresh" Margin="0,0,6,0"
                         Command="{CompiledBinding RefreshCommand}"
                         IsEnabled="{CompiledBinding SaveDirectoryPath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <Button DockPanel.Dock="Left" Content="Save"
+                        Command="{CompiledBinding SaveCommand}"
+                        ToolTip.Tip="Save the open file (atomic write; backups already taken on open)."/>
                 <TextBlock VerticalAlignment="Center" Margin="12,0,0,0"
                            Text="{CompiledBinding SaveDirectoryPath}"
                            TextTrimming="CharacterEllipsis"/>

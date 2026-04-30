@@ -1,3 +1,4 @@
+using TICSaveEditor.Core.Records;
 using TICSaveEditor.Core.Save;
 
 namespace TICSaveEditor.Core.Operations;
@@ -94,11 +95,13 @@ public static class PartyOperations
     {
         if (saveWork is null) throw new ArgumentNullException(nameof(saveWork));
 
-        // No-job sentinel warning is deferred per decisions_m8_no_job_validation_deferred.md;
-        // empty-unit warning is sufficient v0.1 coverage. If a populated unit's Job byte is
-        // out of the 22-job ability-flag array range, UnitSaveData.LearnAllAbilitiesForJob
-        // throws ArgumentOutOfRangeException, which OperationRunner catches → restores the
-        // snapshot → returns UnexpectedFailure.
+        // Job-byte → ability_flag slot mapping is class-name-based, not formulaic:
+        // canonical generics (Squire..Mime + Dark/Onion Knight) get their own slot;
+        // story-unique classes (Holy Knight, Sword Saint, Machinist, etc.) all share
+        // slot 0 with Squire. The truly unmappable cases are monsters, "Unknown"
+        // placeholders, the no-job sentinel, and out-of-range bytes — those get
+        // skipped with a warning.
+        // UnitSaveData.GetAbilityFlagSlotForJob owns the table.
         return OperationRunner.Run(
             saveWork,
             validate: sw =>
@@ -106,10 +109,19 @@ public static class PartyOperations
                 var issues = new List<OperationIssue>();
                 for (int i = 0; i < sw.Battle.Units.Count; i++)
                 {
-                    if (sw.Battle.Units[i].IsEmpty)
+                    var u = sw.Battle.Units[i];
+                    if (u.IsEmpty)
+                    {
                         issues.Add(new OperationIssue(
                             $"Unit slot {i} is empty; will be skipped.",
                             OperationSeverity.Warning));
+                    }
+                    else if (UnitSaveData.GetAbilityFlagSlotForJob(u.Job) is null)
+                    {
+                        issues.Add(new OperationIssue(
+                            $"Unit slot {i} has job 0x{u.Job:X2} (monster, placeholder, or unsupported class); ability flags not stored for this job; will be skipped.",
+                            OperationSeverity.Warning));
+                    }
                 }
                 return issues;
             },
@@ -120,9 +132,8 @@ public static class PartyOperations
                 for (int i = 0; i < total; i++)
                 {
                     var unit = sw.Battle.Units[i];
-                    if (!unit.IsEmpty)
+                    if (!unit.IsEmpty && unit.TryLearnAllAbilitiesForCurrentJob())
                     {
-                        unit.LearnAllAbilitiesForJob(unit.Job);
                         affected++;
                     }
                     p?.Report(new OperationProgressUpdate(i + 1, total, $"Unit {i}"));

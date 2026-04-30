@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using TICSaveEditor.Core.Save;
@@ -94,5 +96,38 @@ public class UnitListItemViewModelTests : IClassFixture<GameDataFixture>
         var slot = vm.Slots.First(s => !s.IsEmpty);
         var unit = slot.Units.First(u => !u.IsEmpty);
         Assert.False(string.IsNullOrEmpty(unit.JobName));
+    }
+
+    [Fact]
+    public void Mutating_Level_raises_INPC_for_LevelLabel_and_Level()
+    {
+        // Pre-M11-followup: the row was static. The bulk-op "Set all to level" mutated
+        // bytes but the unit list didn't refresh until the user re-selected the slot.
+        // After the followup, the row's INPC forwards Model.PropertyChanged.
+        var vm = LoadBaseline();
+        var slot = vm.Slots.First(s => !s.IsEmpty);
+        var unit = slot.Units.First(u => !u.IsEmpty);
+        var fired = new List<string?>();
+        unit.PropertyChanged += (_, e) => fired.Add(e.PropertyName);
+
+        unit.Model.Level = (byte)(unit.Model.Level == 50 ? 51 : 50);
+
+        Assert.Contains(nameof(UnitListItemViewModel.Level), fired);
+        Assert.Contains(nameof(UnitListItemViewModel.LevelLabel), fired);
+    }
+
+    [Fact]
+    public void Mutating_Job_raises_INPC_for_JobName_and_Name()
+    {
+        var vm = LoadBaseline();
+        var slot = vm.Slots.First(s => !s.IsEmpty);
+        var unit = slot.Units.First(u => !u.IsEmpty);
+        var fired = new List<string?>();
+        unit.PropertyChanged += (_, e) => fired.Add(e.PropertyName);
+
+        unit.Model.Job = (byte)(unit.Model.Job == 0 ? 1 : 0);
+
+        Assert.Contains(nameof(UnitListItemViewModel.JobName), fired);
+        Assert.Contains(nameof(UnitListItemViewModel.Name), fired);
     }
 }

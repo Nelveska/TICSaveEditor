@@ -25,6 +25,21 @@
             </Grid>
         </Border>
 
+        <Border DockPanel.Dock="Top" Padding="0,4,0,8" IsVisible="{CompiledBinding IsNotEmpty}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="Bulk actions:" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <Button Content="Set all to level…"
+                        Command="{CompiledBinding SetAllToLevelCommand}"
+                        ToolTip.Tip="Set every populated unit in this slot to a chosen level (1–99)."/>
+                <Button Content="Max all job points"
+                        Command="{CompiledBinding MaxAllJobPointsCommand}"
+                        ToolTip.Tip="Set every populated unit's job points to the maximum value."/>
+                <Button Content="Learn all abilities (current job)"
+                        Command="{CompiledBinding LearnAllAbilitiesCurrentJobCommand}"
+                        ToolTip.Tip="Mark every ability of each unit's current job as learned."/>
+            </StackPanel>
+        </Border>
+
         <v:UnitListView DataContext="{CompiledBinding}"/>
     </DockPanel>
 </UserControl>

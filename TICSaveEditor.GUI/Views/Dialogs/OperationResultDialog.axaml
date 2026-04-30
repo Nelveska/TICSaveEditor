@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TICSaveEditor.GUI.ViewModels.Dialogs"
+        x:Class="TICSaveEditor.GUI.Views.Dialogs.OperationResultDialog"
+        x:DataType="vm:OperationResultDialogViewModel"
+        Title="{CompiledBinding Title}"
+        Width="560" Height="360"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner">
+    <DockPanel LastChildFill="True" Margin="16">
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="OK" Width="80" IsDefault="True" IsCancel="True" Click="OnOk"/>
+        </StackPanel>
+        <StackPanel Spacing="10">
+            <TextBlock Text="{CompiledBinding Headline}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+            <Border BorderBrush="#444" BorderThickness="1" Padding="8" MinHeight="200">
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{CompiledBinding GroupedIssues}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="x:String">
+                                <TextBlock Text="{CompiledBinding}" TextWrapping="Wrap" Margin="0,0,0,4"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </StackPanel>
+    </DockPanel>
+</Window>

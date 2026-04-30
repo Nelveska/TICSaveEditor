@@ -12,7 +12,7 @@ public class ResumeWorldSaveFileViewModel : SaveFileViewModel
         // Index = -1 so the SaveSlotView renders identically. Card.Magic on a real
         // world save is non-zero, so IsEmpty stays false.
         var syntheticSlot = new SaveSlot(-1, model.SaveWork);
-        Slot = new SaveSlotViewModel(syntheticSlot, gameData);
+        Slot = new SaveSlotViewModel(syntheticSlot, gameData, model);
     }
 
     public SaveSlotViewModel Slot { get; }
