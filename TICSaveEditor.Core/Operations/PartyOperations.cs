@@ -5,6 +5,21 @@ namespace TICSaveEditor.Core.Operations;
 
 public static class PartyOperations
 {
+    // Bulk ops gate on `IsInActiveParty(slotIndex)` — per
+    // decisions_unit_index_active_flag.md, a unit slot can hold non-empty data
+    // (Character != 0) yet not be in the current party (Resist == 0xFF, e.g.
+    // departed guests like Argath, dismissed recruits). Bulk ops skip those.
+
+    private static string SkipReason(UnitSaveData u, int slotIndex)
+    {
+        if (u.IsEmpty) return "is empty";
+        // Inactive but populated — the unit data persists for the game's own
+        // bookkeeping (re-recruitable guests, dismissed-but-not-yet-overwritten
+        // recruits). Bulk ops shouldn't touch them; that would mutate state the
+        // user can't see in the in-game UI.
+        return "is not in the active party (departed guest, dismissed recruit, or otherwise stowed)";
+    }
+
     public static OperationResult SetAllToLevel(
         SaveWork saveWork,
         int level,
@@ -24,9 +39,9 @@ public static class PartyOperations
 
                 for (int i = 0; i < sw.Battle.Units.Count; i++)
                 {
-                    if (sw.Battle.Units[i].IsEmpty)
+                    if (!sw.Battle.IsActive(i))
                         issues.Add(new OperationIssue(
-                            $"Unit slot {i} is empty; will be skipped.",
+                            $"Unit slot {i} {SkipReason(sw.Battle.Units[i], i)}; will be skipped.",
                             OperationSeverity.Warning));
                 }
                 return issues;
@@ -38,7 +53,7 @@ public static class PartyOperations
                 for (int i = 0; i < total; i++)
                 {
                     var unit = sw.Battle.Units[i];
-                    if (!unit.IsEmpty)
+                    if (sw.Battle.IsActive(i))
                     {
                         unit.Level = (byte)level;
                         affected++;
@@ -63,9 +78,9 @@ public static class PartyOperations
                 var issues = new List<OperationIssue>();
                 for (int i = 0; i < sw.Battle.Units.Count; i++)
                 {
-                    if (sw.Battle.Units[i].IsEmpty)
+                    if (!sw.Battle.IsActive(i))
                         issues.Add(new OperationIssue(
-                            $"Unit slot {i} is empty; will be skipped.",
+                            $"Unit slot {i} {SkipReason(sw.Battle.Units[i], i)}; will be skipped.",
                             OperationSeverity.Warning));
                 }
                 return issues;
@@ -77,7 +92,7 @@ public static class PartyOperations
                 for (int i = 0; i < total; i++)
                 {
                     var unit = sw.Battle.Units[i];
-                    if (!unit.IsEmpty)
+                    if (sw.Battle.IsActive(i))
                     {
                         unit.MaxAllJobPoints();
                         affected++;
@@ -110,10 +125,10 @@ public static class PartyOperations
                 for (int i = 0; i < sw.Battle.Units.Count; i++)
                 {
                     var u = sw.Battle.Units[i];
-                    if (u.IsEmpty)
+                    if (!sw.Battle.IsActive(i))
                     {
                         issues.Add(new OperationIssue(
-                            $"Unit slot {i} is empty; will be skipped.",
+                            $"Unit slot {i} {SkipReason(u, i)}; will be skipped.",
                             OperationSeverity.Warning));
                     }
                     else if (UnitSaveData.GetAbilityFlagSlotForJob(u.Job) is null)
@@ -132,7 +147,7 @@ public static class PartyOperations
                 for (int i = 0; i < total; i++)
                 {
                     var unit = sw.Battle.Units[i];
-                    if (!unit.IsEmpty && unit.TryLearnAllAbilitiesForCurrentJob())
+                    if (sw.Battle.IsActive(i) && unit.TryLearnAllAbilitiesForCurrentJob())
                     {
                         affected++;
                     }

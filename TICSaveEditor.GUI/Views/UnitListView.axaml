@@ -16,15 +16,15 @@
                     <Grid ColumnDefinitions="40,250,200,60">
                         <TextBlock Grid.Column="0" Text="{CompiledBinding IndexLabel}" Opacity="0.6"/>
                         <TextBlock Grid.Column="1" Text="{CompiledBinding Name}"
-                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   IsVisible="{CompiledBinding IsActive}"
                                    TextTrimming="CharacterEllipsis"/>
                         <TextBlock Grid.Column="1" Text="— empty —" Opacity="0.4"
-                                   IsVisible="{CompiledBinding IsEmpty}"/>
+                                   IsVisible="{CompiledBinding IsInactive}"/>
                         <TextBlock Grid.Column="2" Text="{CompiledBinding JobName}"
-                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   IsVisible="{CompiledBinding IsActive}"
                                    TextTrimming="CharacterEllipsis"/>
                         <TextBlock Grid.Column="3" Text="{CompiledBinding LevelLabel}"
-                                   IsVisible="{CompiledBinding IsNotEmpty}"
+                                   IsVisible="{CompiledBinding IsActive}"
                                    HorizontalAlignment="Right"/>
                     </Grid>
                 </DataTemplate>

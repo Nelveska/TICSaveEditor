@@ -97,4 +97,38 @@ public class BattleSectionTests
                   + battle.BattleSortRaw.Length;
         Assert.Equal(4280, total);
     }
+
+    [Fact]
+    public void IsActive_false_for_empty_slot()
+    {
+        var battle = new BattleSection(BlankBattleBytes());
+        Assert.False(battle.IsActive(0));
+        Assert.False(battle.IsActive(51));
+    }
+
+    [Fact]
+    public void IsActive_true_when_unit_resist_matches_slot()
+    {
+        var battle = new BattleSection(BlankBattleBytes());
+        battle.Units[3].Character = 0x80;
+        battle.Units[3].Resist = 3;
+        Assert.True(battle.IsActive(3));
+    }
+
+    [Fact]
+    public void IsActive_false_when_unit_resist_is_0xFF()
+    {
+        var battle = new BattleSection(BlankBattleBytes());
+        battle.Units[51].Character = 0x07;     // departed-guest pattern
+        battle.Units[51].Resist = 0xFF;
+        Assert.False(battle.IsActive(51));
+    }
+
+    [Fact]
+    public void IsActive_throws_for_out_of_range_slot()
+    {
+        var battle = new BattleSection(BlankBattleBytes());
+        Assert.Throws<ArgumentOutOfRangeException>(() => battle.IsActive(-1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => battle.IsActive(54));
+    }
 }

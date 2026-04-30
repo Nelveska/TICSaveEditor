@@ -80,6 +80,19 @@ public class BattleSection : SaveWorkSection
     public IReadOnlyList<UnitSaveData> Units { get; }
 
     /// <summary>
+    /// Returns true if the unit at <paramref name="slotIndex"/> is currently
+    /// active in the player's party (per <see cref="UnitSaveData.IsInActiveParty"/>).
+    /// Wires the slot index through so callers don't have to track it separately.
+    /// See <c>decisions_unit_index_active_flag.md</c>.
+    /// </summary>
+    public bool IsActive(int slotIndex)
+    {
+        if ((uint)slotIndex >= (uint)UnitCount)
+            throw new ArgumentOutOfRangeException(nameof(slotIndex));
+        return _units[slotIndex].IsInActiveParty(slotIndex);
+    }
+
+    /// <summary>
     /// 261-byte party-inventory region (template <c>battle.PartyItem[0x105]</c>). One byte per
     /// item-storage slot (count). The byte index is category-grouped storage, NOT a direct
     /// item ID — see decisions_battlesection_inventory_raw_passthrough.md. Wrapper class with

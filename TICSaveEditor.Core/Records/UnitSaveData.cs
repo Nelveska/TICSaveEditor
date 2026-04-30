@@ -731,9 +731,24 @@ public class UnitSaveData : INotifyPropertyChanged
         return copy;
     }
 
-    // ===== Empty detection =====
+    // ===== Empty / active detection =====
 
     public bool IsEmpty => _layout.Character == 0;
+
+    /// <summary>
+    /// Returns true if this unit is currently active in the player's party at the
+    /// given slot index. The byte at offset 0x01 (community-attested name
+    /// <c>UnitIndex</c>; exposed here as <see cref="Resist"/> per legacy Nenkai
+    /// labelling) holds the unit's own slot index when active and 0xFF when the
+    /// unit is inactive (departed guest, dismissed recruit, stowed) or the slot
+    /// is empty. Verified 2026-04-30 against <c>SaveFiles/enhanced.png</c>; see
+    /// <c>decisions_unit_index_active_flag.md</c>.
+    /// </summary>
+    public bool IsInActiveParty(int ownSlotIndex)
+    {
+        if (_layout.Character == 0) return false;
+        return _layout.Resist == (byte)ownSlotIndex;
+    }
 
     // ===== Validation =====
 

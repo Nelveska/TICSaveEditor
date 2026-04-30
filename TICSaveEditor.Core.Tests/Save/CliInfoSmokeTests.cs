@@ -94,7 +94,7 @@ public class CliInfoSmokeTests : IDisposable
             throw new FileNotFoundException("Could not locate solution root from test bin path.");
         }
         var candidate = Path.Combine(
-            dir, "TICSaveEditor.CLI", "bin", "Debug", "net8.0", "TICSaveEditor.CLI.dll");
+            dir, "TICSaveEditor.CLI", "bin", "Debug", "net10.0", "TICSaveEditor.CLI.dll");
         if (!File.Exists(candidate))
         {
             throw new FileNotFoundException(

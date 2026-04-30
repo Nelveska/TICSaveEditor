@@ -11,6 +11,7 @@ public class PartyOperationsTests
         for (int i = 0; i < populatedCount; i++)
         {
             sw.Battle.Units[i].Character = (byte)(i + 1); // make non-empty
+            sw.Battle.Units[i].Resist = (byte)i;          // unit_index == own slot → active per decisions_unit_index_active_flag.md
             sw.Battle.Units[i].Job = 1;                   // JobData ID 1 = Squire = ability_flag index 0
         }
         return sw;
