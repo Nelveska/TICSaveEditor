@@ -4,16 +4,23 @@ using Xunit.Abstractions;
 namespace TICSaveEditor.Core.Tests.Save;
 
 /// <summary>
-/// Diff each variant fixture's experiment slot against the baseline slot.
-/// Output the byte-region differences as test diagnostics so we can resolve
-/// the M5 open questions (job_new semantics, disable_flag hypotheses,
-/// InternalChecksum digest, EquipSet decomposition, gil/inventory location).
+/// Diff each variant fixture's experiment slot against the baseline slot. Output
+/// the byte-region differences as test diagnostics.
 ///
-/// These tests are *informational* — they pass as long as we successfully
+/// Active fixture set (2026-05-01): Baseline + ChangeOneItem + ChangeOneAbilitySlot
+/// + ChangeOneSkillset. The earlier 5-fixture battery (EquipSet / InternalChecksum /
+/// Inventory / JobChange and the M9 Baseline2 / BuyPotion / BuyDagger trio) was
+/// retired in the same session that resolved the CombatSet decomposition; their
+/// findings are baked into Core code + memory.
+///
+/// These tests are *informational* -- they pass as long as we successfully
 /// extracted slot bytes; the diff output is what the user reads.
 /// </summary>
 public class SaveDiffHelperTests
 {
+    private static readonly string[] Variants =
+        { "ChangeOneItem", "ChangeOneAbilitySlot", "ChangeOneSkillset" };
+
     private static readonly (string Name, int Offset, int Size)[] SectionMap =
     {
         ("Card",            0x0000, 0x0100),
@@ -44,26 +51,10 @@ public class SaveDiffHelperTests
     }
 
     /// <summary>
-    /// Find slot indices populated in variant but NOT in baseline. These are the
-    /// "experiment slots" the user saved into for this variant.
-    /// </summary>
-    private static int[] ExperimentSlots(ManualSaveFile baseline, ManualSaveFile variant)
-    {
-        var result = new List<int>();
-        for (int i = 0; i < baseline.Slots.Count; i++)
-        {
-            if (!baseline.Slots[i].IsEmpty) continue;
-            if (variant.Slots[i].IsEmpty) continue;
-            result.Add(i);
-        }
-        return result.ToArray();
-    }
-
-    /// <summary>
-    /// Find the slot with the most recent SaveTimestamp — that's the slot the user
-    /// most recently saved into. In Baseline.png, that's the user's "baseline" save.
-    /// In a variant file, that's the experiment slot. Older pre-existing slots from
-    /// prior gameplay sessions are ignored.
+    /// Find the slot with the most recent SaveTimestamp -- that's the slot the user
+    /// most recently saved into. In Baseline, that's the user's "baseline" save. In a
+    /// variant file, that's the experiment slot. Older pre-existing slots from prior
+    /// gameplay sessions are ignored.
     /// </summary>
     private static int MostRecentSlotIndex(ManualSaveFile save)
     {
@@ -82,8 +73,6 @@ public class SaveDiffHelperTests
         if (bestIdx < 0) throw new InvalidOperationException("No populated slot found.");
         return bestIdx;
     }
-
-    private static int BaselineSlotIndex(ManualSaveFile save) => MostRecentSlotIndex(save);
 
     private static (int FirstDiff, int LastDiff, int DiffCount) DiffRange(
         ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
@@ -113,7 +102,6 @@ public class SaveDiffHelperTests
             _out.WriteLine(
                 $"  {name,-18} (0x{off:X4}..0x{off + size - 1:X4}): {count} byte(s) differ, " +
                 $"section-relative range 0x{first:X4}..0x{last:X4}");
-            // For small diffs, show actual bytes.
             if (count <= 32)
             {
                 for (int i = first; i <= last; i++)
@@ -137,24 +125,18 @@ public class SaveDiffHelperTests
         var baselineSlotBytes = baseline.Slots[baselineIdx].SaveWork.RawBytes;
 
         _out.WriteLine($"Baseline experiment slot: {baselineIdx} (SaveTimestamp={baseline.Slots[baselineIdx].SaveTimestamp:O})");
-        _out.WriteLine($"Section map (slot-relative offsets):");
+        _out.WriteLine("Section map (slot-relative offsets):");
         foreach (var (name, off, size) in SectionMap)
         {
             _out.WriteLine($"  {name,-18} 0x{off:X4}..0x{off + size - 1:X4} ({size} bytes)");
         }
         _out.WriteLine("");
 
-        foreach (var fixture in new[] { "InternalChecksum", "EquipSet", "Inventory", "JobChange" })
+        foreach (var fixture in Variants)
         {
             var variant = Load(fixture);
             var variantIdx = MostRecentSlotIndex(variant);
             _out.WriteLine($"### {fixture}");
-            _out.WriteLine($"  All populated slots in {fixture}:");
-            for (int i = 0; i < variant.Slots.Count; i++)
-            {
-                if (variant.Slots[i].IsEmpty) continue;
-                _out.WriteLine($"    slot {i}: title=\"{variant.Slots[i].SlotTitle}\" timestamp={variant.Slots[i].SaveTimestamp:O}");
-            }
             _out.WriteLine($"  Most-recent slot in {fixture}: {variantIdx}");
             var variantSlotBytes = variant.Slots[variantIdx].SaveWork.RawBytes;
             _out.WriteLine($"  Diffing baseline slot {baselineIdx} vs {fixture} slot {variantIdx}:");
@@ -169,23 +151,23 @@ public class SaveDiffHelperTests
     public void Confirm_baseline_slot_unchanged_across_all_variant_files()
     {
         var baseline = Load("Baseline");
-        var baselineIdx = BaselineSlotIndex(baseline);
+        var baselineIdx = MostRecentSlotIndex(baseline);
         var baselineBytes = baseline.Slots[baselineIdx].SaveWork.RawBytes;
 
-        foreach (var fixture in new[] { "InternalChecksum", "EquipSet", "Inventory", "JobChange" })
+        foreach (var fixture in Variants)
         {
             var variant = Load(fixture);
             var variantBaselineSlotBytes = variant.Slots[baselineIdx].SaveWork.RawBytes;
             var (first, last, count) = DiffRange(baselineBytes, variantBaselineSlotBytes);
             if (count == 0)
             {
-                _out.WriteLine($"{fixture}: baseline slot {baselineIdx} is byte-identical ✓");
+                _out.WriteLine($"{fixture}: baseline slot {baselineIdx} is byte-identical");
             }
             else
             {
                 _out.WriteLine(
                     $"{fixture}: baseline slot {baselineIdx} drifted in {count} bytes " +
-                    $"(0x{first:X4}..0x{last:X4}) — likely incidental playtime / timestamp drift.");
+                    $"(0x{first:X4}..0x{last:X4}) -- likely incidental playtime / timestamp drift.");
             }
         }
         Assert.True(true);
@@ -217,14 +199,11 @@ public class SaveDiffHelperTests
     [Fact]
     public void Confirm_zodiac_high_nibble_is_in_0_to_11_range()
     {
-        // The 12 zodiac signs occupy values 0..11. User claims sign is encoded
-        // in the high nibble of byte 0x06: sign << 4. We verify the high
-        // nibble stays in 0..11 across every populated unit in every fixture.
-        // Note: low nibble is NOT always zero (observed 0x0 and 0x1 across
-        // populated units), so the user's "low nibble unused" claim is
-        // partially refuted — see decisions_zodiac_high_nibble_decode.md.
+        // The 12 zodiac signs occupy values 0..11. Sign is encoded in the high
+        // nibble of byte 0x06 (sign << 4); low nibble is non-zero in some saves
+        // (originally observed during the Glain/PSX-formula investigation).
         var observedLowNibbles = new HashSet<byte>();
-        foreach (var fixture in new[] { "Baseline", "EquipSet", "InternalChecksum", "Inventory", "JobChange" })
+        foreach (var fixture in new[] { "Baseline" }.Concat(Variants))
         {
             var save = Load(fixture);
             for (int slotIdx = 0; slotIdx < save.Slots.Count; slotIdx++)
@@ -250,8 +229,6 @@ public class SaveDiffHelperTests
     {
         // Hypothesis #2 from decisions_jobnew_vs_jobdisable_naming.md: disable_flag bytes 20
         // and 21 might be pre-set non-zero to disable stripped Dark Knight / Onion Knight jobs.
-        // We inspect the FftoBattle.JobDisableFlags region (offsets 0x15..0x91 within
-        // FftoBattleSection.Bytes) in the baseline-most-recent slot to test this.
         var baseline = Load("Baseline");
         var slot = baseline.Slots[MostRecentSlotIndex(baseline)];
         var ffto = slot.SaveWork.FftoBattle;
@@ -283,97 +260,14 @@ public class SaveDiffHelperTests
     }
 
     [Fact]
-    public void Diff_baseline2_against_BuyPotion_and_BuyDagger_for_M9()
-    {
-        // M9 Phase 1: empirical verification of the CSV's structural claims.
-        // Baseline2 is the user's clean reference; BuyPotion = +1 Potion, BuyDagger = +1 Dagger.
-        // CSV expects: Dagger storage index = 0x00; Potion at 0xEF (CSV) or 0xF0 (M5.5 finding).
-        var baseline = Load("Baseline2");
-        var baselineIdx = MostRecentSlotIndex(baseline);
-        var baselineSlotBytes = baseline.Slots[baselineIdx].SaveWork.RawBytes;
-
-        _out.WriteLine($"Baseline2 most-recent slot: {baselineIdx} (timestamp={baseline.Slots[baselineIdx].SaveTimestamp:O})");
-        _out.WriteLine("");
-
-        foreach (var fixture in new[] { "BuyPotion", "BuyDagger" })
-        {
-            var variant = Load(fixture);
-            var variantIdx = MostRecentSlotIndex(variant);
-            _out.WriteLine($"### {fixture}  (most-recent slot: {variantIdx})");
-            var variantSlotBytes = variant.Slots[variantIdx].SaveWork.RawBytes;
-            DumpSectionDiff(fixture, baselineSlotBytes, variantSlotBytes);
-
-            // Inspect PartyItem region directly for the byte-level change.
-            var bParty = baseline.Slots[baselineIdx].SaveWork.Battle.PartyItemRaw;
-            var vParty = variant.Slots[variantIdx].SaveWork.Battle.PartyItemRaw;
-            var changes = new List<(int Idx, byte Base, byte Var)>();
-            for (int i = 0; i < bParty.Length; i++)
-            {
-                if (bParty[i] != vParty[i]) changes.Add((i, bParty[i], vParty[i]));
-            }
-            _out.WriteLine($"  PartyItem bytes that changed: {changes.Count}");
-            foreach (var (idx, b, v) in changes)
-            {
-                _out.WriteLine($"    PartyItemRaw[0x{idx:X3}] base=0x{b:X2}  variant=0x{v:X2}  delta={(int)v - (int)b:+#;-#;0}");
-            }
-            _out.WriteLine("");
-        }
-
-        Assert.True(true);
-    }
-
-    [Fact]
-    public void Inspect_PartyItem_boundary_to_test_size_0x105_vs_0x10F()
-    {
-        // Hypothesis (from M9 planning): the format-notes claim of PartyItem[0x105] is wrong;
-        // CT v4 maps storage indices contiguously to 0x10E. If PartyItem is actually 0x10F bytes,
-        // then what BattleSection currently exposes as ShopItemRaw[0x00..0x09] is really the tail
-        // of PartyItem (DLC items at 0x100..0x103, Throwables at 0x109..0x10E).
-        //
-        // Test: print PartyItemRaw[0x100..0x104] (current end) + ShopItemRaw[0x00..0x0E]
-        // (the disputed 15 bytes) for each fixture. Non-zero values in indices that map to
-        // known Throwables / DLC items confirm the 0x10F hypothesis.
-        foreach (var fixture in new[] { "Baseline", "EquipSet", "InternalChecksum", "Inventory", "JobChange" })
-        {
-            var save = Load(fixture);
-            var slot = save.Slots[MostRecentSlotIndex(save)];
-            var party = slot.SaveWork.Battle.PartyItemRaw;
-            var shop = slot.SaveWork.Battle.ShopItemRaw;
-
-            var partyTail = string.Join(" ", Enumerable.Range(0xFF, 6).Select(i => $"{party[i]:X2}"));
-            var shopHead = string.Join(" ", Enumerable.Range(0x00, 0x10).Select(i => $"{shop[i]:X2}"));
-
-            _out.WriteLine($"{fixture,-18} PartyItemRaw[0xFF..0x104] = {partyTail}");
-            _out.WriteLine($"{fixture,-18} ShopItemRaw[0x00..0x0F]  = {shopHead}");
-            _out.WriteLine($"{fixture,-18}   (^ if hypothesis holds, ShopItemRaw[0x00..0x09] is really PartyItem[0x105..0x10E];");
-            _out.WriteLine($"{fixture,-18}      indices 0x100..0x103 are DLC items, 0x109..0x10E are Throwables.)");
-            _out.WriteLine("");
-        }
-
-        // Also dump some known-Potion bytes for the Inventory fixture vs Baseline.
-        // CSV: Potion = StorageIndex 0xEF. Buying 1 Potion should bump byte at PartyItemRaw[0xEF] by 1.
-        var baseline = Load("Baseline");
-        var inventory = Load("Inventory");
-        var bIdx = MostRecentSlotIndex(baseline);
-        var iIdx = MostRecentSlotIndex(inventory);
-        var bParty = baseline.Slots[bIdx].SaveWork.Battle.PartyItemRaw;
-        var iParty = inventory.Slots[iIdx].SaveWork.Battle.PartyItemRaw;
-        _out.WriteLine($"Potion expected at PartyItemRaw[0xEF]:");
-        _out.WriteLine($"  Baseline  PartyItemRaw[0xEF] = 0x{bParty[0xEF]:X2}");
-        _out.WriteLine($"  Inventory PartyItemRaw[0xEF] = 0x{iParty[0xEF]:X2}");
-
-        Assert.True(true);
-    }
-
-    [Fact]
     public void Confirm_total_populated_slots_grows_monotonically()
     {
         var counts = new Dictionary<string, int>();
-        foreach (var fixture in new[] { "Baseline", "InternalChecksum", "EquipSet", "Inventory", "JobChange" })
+        foreach (var fixture in new[] { "Baseline" }.Concat(Variants))
         {
             var save = Load(fixture);
             counts[fixture] = save.Slots.Count(s => !s.IsEmpty);
-            _out.WriteLine($"{fixture,-20}: {counts[fixture]} populated slot(s)");
+            _out.WriteLine($"{fixture,-22}: {counts[fixture]} populated slot(s)");
         }
         Assert.True(true);
     }

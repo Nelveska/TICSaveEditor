@@ -6,7 +6,7 @@ public class UmifContainerTests
 {
     private static readonly string[] FixtureNames =
     {
-        "Baseline", "EquipSet", "InternalChecksum", "Inventory", "JobChange",
+        "Baseline", "ChangeOneItem", "ChangeOneAbilitySlot", "ChangeOneSkillset",
     };
 
     private static byte[] ReadFixtureFftoChunk(string name)
@@ -64,10 +64,9 @@ public class UmifContainerTests
 
     [Theory]
     [InlineData("Baseline")]
-    [InlineData("EquipSet")]
-    [InlineData("InternalChecksum")]
-    [InlineData("Inventory")]
-    [InlineData("JobChange")]
+    [InlineData("ChangeOneItem")]
+    [InlineData("ChangeOneAbilitySlot")]
+    [InlineData("ChangeOneSkillset")]
     public void Unpack_real_fixture_returns_2007816_bytes(string fixture)
     {
         var chunk = ReadFixtureFftoChunk(fixture);

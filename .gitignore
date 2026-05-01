@@ -6,6 +6,20 @@
 # dotenv files
 .env
 
+# Per-developer local config for the build-pipeline scripts (scripts/extract-bundled-game-data.ps1).
+# scripts/_config.local.ps1.example is the committed template; the .ps1 form is local-only.
+_config.local.ps1
+
+# Working directories not intended for the public repo.
+# Docs/ holds in-progress design notes and reverse-engineering scratch.
+# SaveFiles/ holds real-game save fixtures used by tests but not redistributable.
+Docs/
+SaveFiles/
+
+# Claude Code local-only settings (per-machine permission allowlist etc.).
+# Other files under .claude/ may be committed if/when added.
+.claude/settings.local.json
+
 # User-specific files
 *.rsuser
 *.suo

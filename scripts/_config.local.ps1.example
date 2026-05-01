@@ -1,0 +1,17 @@
+# Local-only defaults loaded by extract-bundled-game-data.ps1 when present.
+# COPY this file to _config.local.ps1 and edit. The .ps1 file is gitignored.
+#
+# Each variable is overridden by its matching script parameter (so you can
+# still pass -FF16ToolsPath / -GameRoot / -NxdDir to override per run).
+
+# Path to FF16Tools.CLI.exe.
+$DefaultFF16ToolsPath = 'D:\Downloads\Firefox\FF16Tools.CLI-win-x64\win-x64\FF16Tools.CLI.exe'
+
+# Pre-unpacked nxd directory (output of FF16Tools.CLI unpack-all-packs).
+# If set, the orchestrator skips stage 1 entirely.
+$DefaultNxdDir = 'D:\Repos\Modding\FFT\UnpackedGameFiles\nxd'
+
+# FFT:TIC install root. Optional -- only used if $DefaultNxdDir is missing AND
+# auto-detect via libraryfolders.vdf doesn't find FFT:TIC. Leave blank to rely
+# on auto-detect.
+# $DefaultGameRoot = 'C:\Program Files (x86)\Steam\steamapps\common\Final Fantasy Tactics The Ivalice Chronicles'

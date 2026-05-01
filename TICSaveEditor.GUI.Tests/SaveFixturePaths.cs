@@ -5,18 +5,21 @@ namespace TICSaveEditor.GUI.Tests;
 
 /// <summary>
 /// Locates the repo's <c>SaveFiles/</c> fixtures by walking up from the test
-/// binary directory. Five baseline fixtures from the M5.5 SaveDiff star pattern
-/// (per <c>decisions_umif_realfixture_locations.md</c>).
+/// binary directory. The active fixture set (2026-05-01) follows the SaveDiff
+/// star pattern from a fresh baseline (per
+/// <c>decisions_umif_realfixture_locations.md</c>): one Baseline plus three
+/// single-edit variants targeting CombatSet sub-regions. The earlier 5-fixture
+/// battery (EquipSet / InternalChecksum / Inventory / JobChange) was retired
+/// in the same session that resolved the CombatSet decomposition.
 /// </summary>
 internal static class SaveFixturePaths
 {
     public static readonly string[] FixtureNames =
     {
         "Baseline",
-        "EquipSet",
-        "InternalChecksum",
-        "Inventory",
-        "JobChange",
+        "ChangeOneItem",
+        "ChangeOneAbilitySlot",
+        "ChangeOneSkillset",
     };
 
     public static string FixturesRoot { get; } = LocateFixturesRoot();

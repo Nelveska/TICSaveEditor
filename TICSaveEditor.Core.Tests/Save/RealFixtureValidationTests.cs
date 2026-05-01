@@ -10,8 +10,8 @@ namespace TICSaveEditor.Core.Tests.Save;
 /// — that's how the M4 Zodiac rule (which compared the raw byte against the
 /// 0..11 sign range, missing the high-nibble decode) shipped uncaught.
 ///
-/// This test loads each of the 5 real save fixtures, iterates every populated
-/// unit, and asserts no validation issue fires for fields whose semantics we
+/// This test loads each of the 4 real save fixtures (2026-05-01 set), iterates every
+/// populated unit, and asserts no validation issue fires for fields whose semantics we
 /// understand from real-fixture inspection. Fields that may legitimately
 /// produce issues on real saves (e.g., guests with placeholder bytes) are
 /// excluded narrowly — the test guards specific known-decode fields.
@@ -20,10 +20,9 @@ public class RealFixtureValidationTests
 {
     [Theory]
     [InlineData("Baseline")]
-    [InlineData("EquipSet")]
-    [InlineData("InternalChecksum")]
-    [InlineData("Inventory")]
-    [InlineData("JobChange")]
+    [InlineData("ChangeOneItem")]
+    [InlineData("ChangeOneAbilitySlot")]
+    [InlineData("ChangeOneSkillset")]
     public void Real_fixture_units_have_no_Zodiac_validation_errors(string fixture)
     {
         var path = Path.Combine(
