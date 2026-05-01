@@ -6,9 +6,12 @@ namespace TICSaveEditor.Core.Records;
 
 public class CombatSet : INotifyPropertyChanged, IRaisableEntry
 {
-    public const int NameByteLength = 66;
-    public const int ItemBytesLength = 10;
-    public const int AbilityBytesLength = 10;
+    public const int NameByteLength = 16;
+    public const int NamePaddingByteLength = 50;
+    public const int SkillsetsByteLength = 4;
+    public const int AbilitiesByteLength = 6;
+    public const int SkillsetCount = 2;
+    public const int AbilityCount = 3;
 
     private readonly UnitSaveData _owner;
 
@@ -38,35 +41,51 @@ public class CombatSet : INotifyPropertyChanged, IRaisableEntry
         set => _owner.SetCombatSetIsDoubleHand(Index, value);
     }
 
-    /// <summary>
-    /// 10 raw bytes holding 5 × u16 item IDs at section-relative offset 0x42..0x4B,
-    /// confirmed empirically by the 2026-05-01 ChangeOneItem SaveDiff fixture (Accessory
-    /// edit landed at CS0+0x4A). Item slot order per the community TIC struct: RHWeapon
-    /// (0x42), LHShield (0x44), Head (0x46), Armor (0x48), Accessory (0x4A). A future
-    /// Core API rename may decompose this into named u16 fields; today the byte[] form
-    /// preserves byte-faithfulness pending that work. See
-    /// decisions_equipset_layout_resolved.md for the resolution + fixture trail.
-    /// </summary>
-    public byte[] RawItemBytes => _owner.GetCombatSetItemBytes(Index);
+    /// <summary>i16 skillset slot 0 at section-relative 0x4C..0x4D.</summary>
+    public short Skillset0
+    {
+        get => _owner.GetCombatSetSkillset(Index, 0);
+        set => _owner.SetCombatSetSkillset(Index, 0, value);
+    }
 
-    /// <summary>
-    /// 10 raw bytes spanning section-relative offset 0x4C..0x55. Empirical decomposition
-    /// (community TIC struct, confirmed 2026-05-01 by the ChangeOneAbilitySlot +
-    /// ChangeOneSkillset fixtures): 0x4C..0x4F = 2 × i16 skillsets (NOT u16 abilities as
-    /// the spec/Nenkai claimed), 0x50..0x55 = 3 × u16 abilities (Reaction at 0x50, Support
-    /// at 0x52, Movement at 0x54). The "AbilityBytes" name is preserved for API stability;
-    /// the named decomposition is queued for a future Core API rename. See
-    /// decisions_equipset_layout_resolved.md.
-    /// </summary>
-    public byte[] RawAbilityBytes => _owner.GetCombatSetAbilityBytes(Index);
+    /// <summary>i16 skillset slot 1 at section-relative 0x4E..0x4F.</summary>
+    public short Skillset1
+    {
+        get => _owner.GetCombatSetSkillset(Index, 1);
+        set => _owner.SetCombatSetSkillset(Index, 1, value);
+    }
+
+    /// <summary>u16 reaction-ability id at section-relative 0x50..0x51.</summary>
+    public ushort ReactionAbility
+    {
+        get => _owner.GetCombatSetAbility(Index, 0);
+        set => _owner.SetCombatSetAbility(Index, 0, value);
+    }
+
+    /// <summary>u16 support-ability id at section-relative 0x52..0x53.</summary>
+    public ushort SupportAbility
+    {
+        get => _owner.GetCombatSetAbility(Index, 1);
+        set => _owner.SetCombatSetAbility(Index, 1, value);
+    }
+
+    /// <summary>u16 movement-ability id at section-relative 0x54..0x55.</summary>
+    public ushort MovementAbility
+    {
+        get => _owner.GetCombatSetAbility(Index, 2);
+        set => _owner.SetCombatSetAbility(Index, 2, value);
+    }
 
     void IRaisableEntry.RaiseValueChanged()
     {
         OnPropertyChanged(nameof(Name));
         OnPropertyChanged(nameof(Job));
         OnPropertyChanged(nameof(IsDoubleHand));
-        OnPropertyChanged(nameof(RawItemBytes));
-        OnPropertyChanged(nameof(RawAbilityBytes));
+        OnPropertyChanged(nameof(Skillset0));
+        OnPropertyChanged(nameof(Skillset1));
+        OnPropertyChanged(nameof(ReactionAbility));
+        OnPropertyChanged(nameof(SupportAbility));
+        OnPropertyChanged(nameof(MovementAbility));
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

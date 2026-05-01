@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Text;
+using System.ComponentModel;
 using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using TICSaveEditor.Core.GameData;
 using TICSaveEditor.Core.Operations;
+using TICSaveEditor.Core.Records;
 using TICSaveEditor.Core.Save;
 using TICSaveEditor.Core.Sections;
 
@@ -19,11 +22,23 @@ namespace TICSaveEditor.GUI.ViewModels;
 public partial class SaveSlotViewModel : ViewModelBase
 {
     private readonly SaveFile? _parentFile;
+    private readonly GameDataContext _gameData;
+    private readonly Dictionary<UnitSaveData, CombatSetEditorViewModel> _editorCache = new();
+
+    /// <summary>
+    /// Battle-section unit indices that contribute to <see cref="HeroNames"/>:
+    /// Ramza is fixed at slot 0 (always shown if present); guest characters
+    /// occupy slots 50..53 (max four concurrent guests, per the user's domain
+    /// knowledge). Filtering is by <see cref="BattleSection.IsActive(int)"/>
+    /// — inactive guests (UnitIndex == 0xFF) are excluded.
+    /// </summary>
+    private static readonly int[] HeroSlotIndices = { 0, 50, 51, 52, 53 };
 
     public SaveSlotViewModel(SaveSlot model, GameDataContext gameData, SaveFile? parentFile = null)
     {
         Model = model;
         _parentFile = parentFile;
+        _gameData = gameData;
         var unitVms = new UnitListItemViewModel[BattleSection.UnitCount];
         for (int i = 0; i < BattleSection.UnitCount; i++)
         {
@@ -31,6 +46,19 @@ public partial class SaveSlotViewModel : ViewModelBase
         }
         Units = new ReadOnlyObservableCollection<UnitListItemViewModel>(
             new ObservableCollection<UnitListItemViewModel>(unitVms));
+
+        // Re-raise HeroNames when Ramza or any guest changes name or active status.
+        foreach (var idx in HeroSlotIndices)
+            Units[idx].PropertyChanged += OnHeroUnitChanged;
+    }
+
+    private void OnHeroUnitChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(UnitListItemViewModel.Name)
+            || e.PropertyName == nameof(UnitListItemViewModel.IsActive))
+        {
+            OnPropertyChanged(nameof(HeroNames));
+        }
     }
 
     public SaveSlot Model { get; }
@@ -39,7 +67,16 @@ public partial class SaveSlotViewModel : ViewModelBase
     public bool IsEmpty => Model.IsEmpty;
     public bool IsNotEmpty => !Model.IsEmpty;
     public string SlotLabel => Index < 0 ? "Resume" : $"Slot {Index}";
-    public string Title => Model.SlotTitle;
+
+    public string TitleDisplay
+    {
+        get
+        {
+            if (Model.IsEmpty) return "—";
+            var t = Model.SlotTitle;
+            return string.IsNullOrEmpty(t) ? "—" : t;
+        }
+    }
 
     /// <summary>
     /// View-side hook: ask the user for an integer level (1–99) via a modal.
@@ -74,34 +111,67 @@ public partial class SaveSlotViewModel : ViewModelBase
     {
         get
         {
-            // Playtime in TIC manual saves at InfoSection offset 0x74 reads 0
-            // for valid populated saves with correct timestamps. Real bug —
-            // offset is wrong or playtime is stored elsewhere. Render "—" until
-            // a SaveDiff fixture pinpoints the correct offset (deferred to v0.2).
             var pt = Model.Playtime;
-            if (pt == TimeSpan.Zero) return "—";
             return $"{(int)pt.TotalHours}h {pt.Minutes:D2}m";
         }
     }
 
-    public string HeroName
+    /// <summary>
+    /// Comma-joined list of "story characters in the active party": always
+    /// <c>Units[0]</c> (Ramza) when present, plus any of <c>Units[50..53]</c>
+    /// whose <see cref="UnitListItemViewModel.IsActive"/> is true (guest
+    /// slots; departed guests have UnitIndex == 0xFF and are excluded).
+    /// Mirrors the in-game save-list display, which never shows generic
+    /// recruits. Returns "—" for empty save slots.
+    /// </summary>
+    public string HeroNames
     {
         get
         {
-            // TIC manual saves zero-fill InfoSection.HeroNameRaw — names are
-            // resolved via name_no + locale lookup (CLAUDE.md gotcha). Raw ASCII
-            // names only appear in battle-format files, which v0.1 doesn't edit.
-            // Display "—" so the empty bytes don't masquerade as missing data.
-            // Real fix: resolve via NameNo lookup at viewmodel layer (v0.2+).
-            var raw = Model.HeroNameRaw;
-            if (Array.TrueForAll(raw, b => b == 0)) return "—";
-            var nullIdx = Array.IndexOf(raw, (byte)0);
-            var len = nullIdx < 0 ? raw.Length : nullIdx;
-            return Encoding.ASCII.GetString(raw, 0, len);
+            if (Model.IsEmpty) return "—";
+            var names = new List<string>();
+            if (!Units[0].IsEmpty)
+                names.Add(Units[0].Name);
+            for (int i = 50; i <= 53; i++)
+                if (Units[i].IsActive)
+                    names.Add(Units[i].Name);
+            return names.Count == 0 ? "—" : string.Join(", ", names);
         }
     }
 
     public ReadOnlyObservableCollection<UnitListItemViewModel> Units { get; }
+
+    /// <summary>
+    /// Currently selected unit row, two-way bound from <see cref="Views.UnitListView"/>.
+    /// Drives the per-unit detail panel (currently the CombatSet editor); a null
+    /// selection collapses the right panel. See <c>decisions_combatset_editor_ui.md</c>.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SelectedUnitEditor))]
+    private UnitListItemViewModel? _selectedUnit;
+
+    /// <summary>
+    /// Lazy-cached <see cref="CombatSetEditorViewModel"/> for the currently
+    /// selected unit. Returns null when no unit is selected or the unit's model
+    /// is empty (no editor for unallocated battle slots). Reference equality is
+    /// preserved across selection cycles — re-selecting the same unit returns
+    /// the cached editor with any pending edits intact.
+    /// </summary>
+    public CombatSetEditorViewModel? SelectedUnitEditor
+    {
+        get
+        {
+            var unit = SelectedUnit;
+            if (unit is null || unit.IsEmpty) return null;
+            var model = unit.Model;
+            if (!_editorCache.TryGetValue(model, out var editor))
+            {
+                editor = new CombatSetEditorViewModel(unit, _gameData, _parentFile);
+                _editorCache[model] = editor;
+            }
+            return editor;
+        }
+    }
 
     [RelayCommand(CanExecute = nameof(CanRunBulkOp))]
     private async Task SetAllToLevelAsync()

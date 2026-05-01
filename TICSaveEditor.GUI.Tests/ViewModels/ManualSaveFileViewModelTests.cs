@@ -30,10 +30,10 @@ public class ManualSaveFileViewModelTests : IClassFixture<GameDataFixture>
         foreach (var slot in vm.Slots)
         {
             // No throw on empty/populated slots' display paths.
-            _ = slot.Title;
+            _ = slot.TitleDisplay;
             _ = slot.SaveTimestampDisplay;
             _ = slot.PlaytimeDisplay;
-            _ = slot.HeroName;
+            _ = slot.HeroNames;
         }
     }
 }

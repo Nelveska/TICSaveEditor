@@ -57,18 +57,6 @@ public class InfoSectionTests
     }
 
     [Fact]
-    public void MainProgress_reads_int32_LE_at_0x20()
-    {
-        var bytes = BlankBytes();
-        bytes[0x20] = 0x44;
-        bytes[0x21] = 0x33;
-        bytes[0x22] = 0x22;
-        bytes[0x23] = 0x11;
-        var info = new InfoSection(bytes);
-        Assert.Equal(0x11223344, info.MainProgress);
-    }
-
-    [Fact]
     public void InternalChecksumRaw_returns_16_bytes_at_0x64()
     {
         var bytes = BlankBytes();
@@ -82,8 +70,9 @@ public class InfoSectionTests
     }
 
     [Fact]
-    public void Playtime_round_trips_as_TimeSpan_seconds()
+    public void Playtime_round_trips_as_TimeSpan_minutes()
     {
+        // Playtime is stored as int32 LE minutes (resolved 2026-05-01).
         var info = new InfoSection(BlankBytes());
         info.Playtime = TimeSpan.FromHours(12);
 
@@ -98,18 +87,27 @@ public class InfoSectionTests
     }
 
     [Fact]
-    public void Playtime_writes_int32_LE_at_0x74()
+    public void Playtime_writes_int32_LE_at_0x20()
     {
         var info = new InfoSection(BlankBytes());
-        info.Playtime = TimeSpan.FromSeconds(0x12345678);
+        info.Playtime = TimeSpan.FromMinutes(0x12345678);
 
         var output = new byte[SaveWorkLayout.InfoSize];
         info.WriteTo(output);
 
-        Assert.Equal(0x78, output[0x74]);
-        Assert.Equal(0x56, output[0x75]);
-        Assert.Equal(0x34, output[0x76]);
-        Assert.Equal(0x12, output[0x77]);
+        Assert.Equal(0x78, output[0x20]);
+        Assert.Equal(0x56, output[0x21]);
+        Assert.Equal(0x34, output[0x22]);
+        Assert.Equal(0x12, output[0x23]);
+    }
+
+    [Fact]
+    public void Playtime_setter_truncates_sub_minute_to_zero()
+    {
+        // int32 minutes resolution; sub-minute values floor to zero.
+        var info = new InfoSection(BlankBytes());
+        info.Playtime = TimeSpan.FromSeconds(45);
+        Assert.Equal(TimeSpan.Zero, info.Playtime);
     }
 
     [Fact]

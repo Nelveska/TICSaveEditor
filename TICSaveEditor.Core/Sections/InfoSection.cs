@@ -11,9 +11,8 @@ public class InfoSection : SaveWorkSection
 
     private const int HeroNameOffset = 0x01;
     private const int NextEventIdOffset = 0x1C;
-    private const int MainProgressOffset = 0x20;
+    private const int PlaytimeOffset = 0x20; // int32 LE, **minutes** of in-game playtime (resolved 2026-05-01 via SaveDiff against Baseline)
     private const int InternalChecksumOffset = 0x64;
-    private const int PlaytimeOffset = 0x74;
     private const int InfoTrailingOffset = 0x78;
 
     internal InfoSection(ReadOnlySpan<byte> bytes) : base(bytes) { }
@@ -44,9 +43,6 @@ public class InfoSection : SaveWorkSection
     public int NextEventId =>
         BinaryPrimitives.ReadInt32LittleEndian(Bytes.AsSpan(NextEventIdOffset, 4));
 
-    public int MainProgress =>
-        BinaryPrimitives.ReadInt32LittleEndian(Bytes.AsSpan(MainProgressOffset, 4));
-
     // Spec at tic-save-editor-api-surface.md:589 specs `uint InternalChecksum`,
     // but Nenkai's 010 template declares `chk_sum byte[0x10]` — 16 bytes.
     // We follow the template per byte-faithful invariant; recompute-on-write
@@ -61,19 +57,25 @@ public class InfoSection : SaveWorkSection
         }
     }
 
+    /// <summary>
+    /// In-game playtime, stored as int32 LE minutes at offset 0x20. Resolution:
+    /// fractional minutes truncate on write (TimeSpan.FromSeconds(45) round-trips as
+    /// TimeSpan.Zero). Confirmed empirically 2026-05-01 via intra-file SaveDiff
+    /// across Baseline/enhanced.png populated slots.
+    /// </summary>
     public TimeSpan Playtime
     {
-        get => TimeSpan.FromSeconds(
+        get => TimeSpan.FromMinutes(
             BinaryPrimitives.ReadInt32LittleEndian(Bytes.AsSpan(PlaytimeOffset, 4)));
         set
         {
             if (value < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(value),
                     "Playtime cannot be negative.");
-            var secs = (int)Math.Floor(value.TotalSeconds);
-            if (BinaryPrimitives.ReadInt32LittleEndian(Bytes.AsSpan(PlaytimeOffset, 4)) == secs)
+            var mins = (int)Math.Floor(value.TotalMinutes);
+            if (BinaryPrimitives.ReadInt32LittleEndian(Bytes.AsSpan(PlaytimeOffset, 4)) == mins)
                 return;
-            BinaryPrimitives.WriteInt32LittleEndian(Bytes.AsSpan(PlaytimeOffset, 4), secs);
+            BinaryPrimitives.WriteInt32LittleEndian(Bytes.AsSpan(PlaytimeOffset, 4), mins);
             OnPropertyChanged();
         }
     }

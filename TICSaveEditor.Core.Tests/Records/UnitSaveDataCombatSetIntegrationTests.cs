@@ -86,8 +86,11 @@ public class UnitSaveDataCombatSetIntegrationTests
             _ = unit.CombatSets[i].Name;
             _ = unit.CombatSets[i].Job;
             _ = unit.CombatSets[i].IsDoubleHand;
-            _ = unit.CombatSets[i].RawItemBytes;
-            _ = unit.CombatSets[i].RawAbilityBytes;
+            _ = unit.CombatSets[i].Skillset0;
+            _ = unit.CombatSets[i].Skillset1;
+            _ = unit.CombatSets[i].ReactionAbility;
+            _ = unit.CombatSets[i].SupportAbility;
+            _ = unit.CombatSets[i].MovementAbility;
         }
 
         var output = new byte[600];
@@ -99,7 +102,7 @@ public class UnitSaveDataCombatSetIntegrationTests
     public void Real_fixture_CombatSet_round_trip_byte_identical_no_mutation()
     {
         var path = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
-            "SaveFiles", "EquipSet", "enhanced.png");
+            "SaveFiles", "Baseline", "enhanced.png");
         if (!File.Exists(path))
         {
             // Fixture not provided in this checkout — skip.
@@ -119,6 +122,70 @@ public class UnitSaveDataCombatSetIntegrationTests
         {
             if (File.Exists(tempPath)) File.Delete(tempPath);
         }
+    }
+
+    [Fact]
+    public void Real_fixture_ChangeOneSkillset_decodes_Skillset1_via_typed_accessor()
+    {
+        // Per the 2026-05-01 SaveDiff diagnostic, the ChangeOneSkillset fixture's
+        // single-edit landed at CS0+0x4E (= Skillset1 low byte): Ramza's secondary-
+        // action skillset shifted 0x09 -> 0x0E. Baseline still reads 0x09.
+        // This is the typed-accessor end-to-end smoke for Phase 1.
+        var baselinePath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "SaveFiles", "Baseline", "enhanced.png");
+        var variantPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..",
+            "SaveFiles", "ChangeOneSkillset", "enhanced.png");
+        if (!File.Exists(baselinePath) || !File.Exists(variantPath))
+        {
+            // Fixtures not provided in this checkout — skip.
+            return;
+        }
+
+        var baseline = (TICSaveEditor.Core.Save.ManualSaveFile)
+            TICSaveEditor.Core.Save.SaveFileLoader.Load(File.ReadAllBytes(baselinePath), baselinePath);
+        var variant = (TICSaveEditor.Core.Save.ManualSaveFile)
+            TICSaveEditor.Core.Save.SaveFileLoader.Load(File.ReadAllBytes(variantPath), variantPath);
+
+        var baseSlot = MostRecentPopulatedSlot(baseline);
+        var varSlot = MostRecentPopulatedSlot(variant);
+
+        var baseUnit0 = baseline.Slots[baseSlot].SaveWork.Battle.Units[0];
+        var varUnit0 = variant.Slots[varSlot].SaveWork.Battle.Units[0];
+
+        Assert.Equal(0x09, baseUnit0.CombatSets[0].Skillset1);
+        Assert.Equal(0x0E, varUnit0.CombatSets[0].Skillset1);
+    }
+
+    private static int MostRecentPopulatedSlot(TICSaveEditor.Core.Save.ManualSaveFile save)
+    {
+        int bestIdx = -1;
+        DateTimeOffset bestTs = DateTimeOffset.MinValue;
+        for (int i = 0; i < save.Slots.Count; i++)
+        {
+            if (save.Slots[i].IsEmpty) continue;
+            var ts = save.Slots[i].SaveTimestamp;
+            if (ts > bestTs) { bestTs = ts; bestIdx = i; }
+        }
+        return bestIdx;
+    }
+
+    [Fact]
+    public void Mutating_typed_accessor_on_one_CombatSet_does_not_affect_others()
+    {
+        // CS1.MovementAbility writes to unit-relative 0x126 + 88 + 0x54 = 0x1D2.
+        // Other presets must remain at their default (zero) values.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[1].MovementAbility = 0xE6;
+
+        Assert.Equal((ushort)0xE6, unit.CombatSets[1].MovementAbility);
+        Assert.Equal((ushort)0,    unit.CombatSets[0].MovementAbility);
+        Assert.Equal((ushort)0,    unit.CombatSets[2].MovementAbility);
+
+        // Other typed accessors on the same preset must also stay at default.
+        Assert.Equal((short)0, unit.CombatSets[1].Skillset0);
+        Assert.Equal((short)0, unit.CombatSets[1].Skillset1);
+        Assert.Equal((ushort)0, unit.CombatSets[1].ReactionAbility);
+        Assert.Equal((ushort)0, unit.CombatSets[1].SupportAbility);
     }
 
     [Fact]

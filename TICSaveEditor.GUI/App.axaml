@@ -20,6 +20,9 @@
         <DataTemplate DataType="vm:SaveSlotViewModel">
             <v:SaveSlotView/>
         </DataTemplate>
+        <DataTemplate DataType="vm:CombatSetEditorViewModel">
+            <v:CombatSetEditorView/>
+        </DataTemplate>
         <local:ViewLocator/>
     </Application.DataTemplates>
 

@@ -10,7 +10,8 @@
             <TextBlock Grid.Column="2" Text="Job" FontWeight="Bold"/>
             <TextBlock Grid.Column="3" Text="Lv" FontWeight="Bold" HorizontalAlignment="Right"/>
         </Grid>
-        <ListBox ItemsSource="{CompiledBinding Units}">
+        <ListBox ItemsSource="{CompiledBinding Units}"
+                 SelectedItem="{CompiledBinding SelectedUnit}">
             <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="vm:UnitListItemViewModel">
                     <Grid ColumnDefinitions="40,250,200,60">

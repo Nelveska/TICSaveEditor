@@ -13,7 +13,7 @@
                     <DataTemplate x:DataType="vm:SaveSlotViewModel">
                         <StackPanel>
                             <TextBlock Text="{CompiledBinding SlotLabel}"/>
-                            <TextBlock Text="{CompiledBinding Title}"
+                            <TextBlock Text="{CompiledBinding TitleDisplay}"
                                        FontSize="11" Opacity="0.75"
                                        TextTrimming="CharacterEllipsis"
                                        IsVisible="{CompiledBinding IsNotEmpty}"/>

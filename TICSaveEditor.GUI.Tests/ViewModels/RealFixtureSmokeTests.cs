@@ -45,8 +45,8 @@ public class RealFixtureSmokeTests : IClassFixture<GameDataFixture>
             Assert.Equal(BattleSection.UnitCount, slot.Units.Count);
 
             // Slot proxies don't throw.
-            _ = slot.Title;
-            _ = slot.HeroName;
+            _ = slot.TitleDisplay;
+            _ = slot.HeroNames;
             _ = slot.SaveTimestampDisplay;
             _ = slot.PlaytimeDisplay;
 

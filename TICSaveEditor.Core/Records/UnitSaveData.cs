@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -724,7 +725,7 @@ public class UnitSaveData : INotifyPropertyChanged
 
         ref var slot = ref GetCombatSetRef(index);
         var v = value ?? string.Empty;
-        var clampedLen = Math.Min(v.Length, CombatSet.NameByteLength - 1);
+        var clampedLen = Math.Min(v.Length, CombatSet.NameByteLength);
 
         unsafe
         {
@@ -732,10 +733,10 @@ public class UnitSaveData : INotifyPropertyChanged
             {
                 var dest = new Span<byte>(p, CombatSet.NameByteLength);
                 var bytesWritten = Encoding.ASCII.GetBytes(v.AsSpan(0, clampedLen), dest);
+                // Zero-pad remaining bytes within the 16-byte fixed-length name field.
+                // NamePadding[50] at CS+0x10 is intentionally untouched.
                 if (bytesWritten < CombatSet.NameByteLength)
-                {
-                    dest[bytesWritten] = 0;
-                }
+                    dest.Slice(bytesWritten).Clear();
             }
         }
         NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
@@ -780,38 +781,80 @@ public class UnitSaveData : INotifyPropertyChanged
         NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
     }
 
-    internal byte[] GetCombatSetItemBytes(int index)
+    internal short GetCombatSetSkillset(int csIndex, int slot)
     {
-        if ((uint)index >= (uint)CombatSetCount)
-            throw new ArgumentOutOfRangeException(nameof(index));
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.SkillsetCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
 
-        ref var slot = ref GetCombatSetRef(index);
-        var copy = new byte[CombatSet.ItemBytesLength];
+        ref var cs = ref GetCombatSetRef(csIndex);
         unsafe
         {
-            fixed (byte* p = slot.ItemBytes)
+            fixed (byte* p = cs.Skillsets)
             {
-                new ReadOnlySpan<byte>(p, CombatSet.ItemBytesLength).CopyTo(copy);
+                return BinaryPrimitives.ReadInt16LittleEndian(
+                    new ReadOnlySpan<byte>(p + slot * sizeof(short), sizeof(short)));
             }
         }
-        return copy;
     }
 
-    internal byte[] GetCombatSetAbilityBytes(int index)
+    internal void SetCombatSetSkillset(int csIndex, int slot, short value)
     {
-        if ((uint)index >= (uint)CombatSetCount)
-            throw new ArgumentOutOfRangeException(nameof(index));
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.SkillsetCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
 
-        ref var slot = ref GetCombatSetRef(index);
-        var copy = new byte[CombatSet.AbilityBytesLength];
+        ref var cs = ref GetCombatSetRef(csIndex);
         unsafe
         {
-            fixed (byte* p = slot.AbilityBytes)
+            fixed (byte* p = cs.Skillsets)
             {
-                new ReadOnlySpan<byte>(p, CombatSet.AbilityBytesLength).CopyTo(copy);
+                var dest = new Span<byte>(p + slot * sizeof(short), sizeof(short));
+                if (BinaryPrimitives.ReadInt16LittleEndian(dest) == value) return;
+                BinaryPrimitives.WriteInt16LittleEndian(dest, value);
             }
         }
-        return copy;
+        NotifyOrQueue(nameof(CombatSets), _combatSetEntries[csIndex]);
+    }
+
+    internal ushort GetCombatSetAbility(int csIndex, int slot)
+    {
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.AbilityCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
+
+        ref var cs = ref GetCombatSetRef(csIndex);
+        unsafe
+        {
+            fixed (byte* p = cs.Abilities)
+            {
+                return BinaryPrimitives.ReadUInt16LittleEndian(
+                    new ReadOnlySpan<byte>(p + slot * sizeof(ushort), sizeof(ushort)));
+            }
+        }
+    }
+
+    internal void SetCombatSetAbility(int csIndex, int slot, ushort value)
+    {
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.AbilityCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
+
+        ref var cs = ref GetCombatSetRef(csIndex);
+        unsafe
+        {
+            fixed (byte* p = cs.Abilities)
+            {
+                var dest = new Span<byte>(p + slot * sizeof(ushort), sizeof(ushort));
+                if (BinaryPrimitives.ReadUInt16LittleEndian(dest) == value) return;
+                BinaryPrimitives.WriteUInt16LittleEndian(dest, value);
+            }
+        }
+        NotifyOrQueue(nameof(CombatSets), _combatSetEntries[csIndex]);
     }
 
     // ===== Empty / active detection =====

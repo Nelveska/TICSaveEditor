@@ -11,10 +11,10 @@
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{CompiledBinding SlotLabel}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Title: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{CompiledBinding Title}" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{CompiledBinding TitleDisplay}" TextTrimming="CharacterEllipsis"/>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Hero: " FontWeight="Bold"/>
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{CompiledBinding HeroName}"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Hero(es): " FontWeight="Bold"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{CompiledBinding HeroNames}" TextWrapping="Wrap"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Text="Saved / Playtime: " FontWeight="Bold"/>
                 <StackPanel Grid.Row="3" Grid.Column="1" Orientation="Horizontal">
@@ -40,6 +40,10 @@
             </StackPanel>
         </Border>
 
-        <v:UnitListView DataContext="{CompiledBinding}"/>
+        <Grid ColumnDefinitions="Auto,6,*">
+            <v:UnitListView Grid.Column="0" DataContext="{CompiledBinding}"/>
+            <Rectangle Grid.Column="1" Fill="#444"/>
+            <ContentControl Grid.Column="2" Content="{CompiledBinding SelectedUnitEditor}"/>
+        </Grid>
     </DockPanel>
 </UserControl>

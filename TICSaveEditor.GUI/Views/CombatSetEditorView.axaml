@@ -1,0 +1,76 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             x:Class="TICSaveEditor.GUI.Views.CombatSetEditorView"
+             x:DataType="vm:CombatSetEditorViewModel">
+    <DockPanel LastChildFill="True" Margin="6" MinWidth="500">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Combat Sets — " FontWeight="Bold"/>
+                <TextBlock Text="{CompiledBinding UnitName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+            <TextBlock Text="Note: v0.1 does not validate game balance. Non-standard jobs or abilities are untested and may break gameplay."
+                       FontStyle="Italic" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,0"/>
+        </StackPanel>
+
+        <TabControl ItemsSource="{CompiledBinding Presets}">
+            <TabControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CombatSetEntryViewModel">
+                    <TextBlock Text="{CompiledBinding Header}"/>
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate x:DataType="vm:CombatSetEntryViewModel">
+                    <ScrollViewer>
+                        <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="6">
+                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Name:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <TextBox Grid.Row="0" Grid.Column="1" Text="{CompiledBinding Name}" MaxLength="16" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Job:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="1" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding JobOptions}"
+                                      SelectedItem="{CompiledBinding SelectedJob}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Skillset 0:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="2" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding SkillsetOptions}"
+                                      SelectedItem="{CompiledBinding SelectedSkillset0}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Skillset 1:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="3" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding SkillsetOptions}"
+                                      SelectedItem="{CompiledBinding SelectedSkillset1}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Reaction:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="4" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding ReactionOptions}"
+                                      SelectedItem="{CompiledBinding SelectedReaction}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="5" Grid.Column="0" Text="Support:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="5" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding SupportOptions}"
+                                      SelectedItem="{CompiledBinding SelectedSupport}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+                            <TextBlock Grid.Row="6" Grid.Column="0" Text="Movement:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+                            <ComboBox Grid.Row="6" Grid.Column="1"
+                                      ItemsSource="{CompiledBinding MovementOptions}"
+                                      SelectedItem="{CompiledBinding SelectedMovement}"
+                                      DisplayMemberBinding="{Binding Name}"
+                                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+                        </Grid>
+                    </ScrollViewer>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
+    </DockPanel>
+</UserControl>

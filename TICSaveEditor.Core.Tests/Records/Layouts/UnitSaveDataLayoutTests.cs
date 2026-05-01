@@ -24,15 +24,27 @@ public class UnitSaveDataLayoutTests
     }
 
     [Fact]
+    public void CombatSetLayout_NamePadding_is_at_offset_0x10()
+    {
+        Assert.Equal(0x10, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.NamePadding)));
+    }
+
+    [Fact]
     public void CombatSetLayout_ItemBytes_is_at_offset_0x42()
     {
         Assert.Equal(0x42, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.ItemBytes)));
     }
 
     [Fact]
-    public void CombatSetLayout_AbilityBytes_is_at_offset_0x4C()
+    public void CombatSetLayout_Skillsets_is_at_offset_0x4C()
     {
-        Assert.Equal(0x4C, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.AbilityBytes)));
+        Assert.Equal(0x4C, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Skillsets)));
+    }
+
+    [Fact]
+    public void CombatSetLayout_Abilities_is_at_offset_0x50()
+    {
+        Assert.Equal(0x50, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Abilities)));
     }
 
     [Fact]
