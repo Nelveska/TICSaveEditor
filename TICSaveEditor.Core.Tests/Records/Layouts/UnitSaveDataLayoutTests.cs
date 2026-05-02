@@ -30,9 +30,33 @@ public class UnitSaveDataLayoutTests
     }
 
     [Fact]
-    public void CombatSetLayout_ItemBytes_is_at_offset_0x42()
+    public void CombatSetLayout_Rh_is_at_offset_0x42()
     {
-        Assert.Equal(0x42, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.ItemBytes)));
+        Assert.Equal(0x42, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Rh)));
+    }
+
+    [Fact]
+    public void CombatSetLayout_Lh_is_at_offset_0x44()
+    {
+        Assert.Equal(0x44, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Lh)));
+    }
+
+    [Fact]
+    public void CombatSetLayout_Head_is_at_offset_0x46()
+    {
+        Assert.Equal(0x46, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Head)));
+    }
+
+    [Fact]
+    public void CombatSetLayout_Armor_is_at_offset_0x48()
+    {
+        Assert.Equal(0x48, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Armor)));
+    }
+
+    [Fact]
+    public void CombatSetLayout_Accessory_is_at_offset_0x4A()
+    {
+        Assert.Equal(0x4A, (int)Marshal.OffsetOf<CombatSetLayout>(nameof(CombatSetLayout.Accessory)));
     }
 
     [Fact]

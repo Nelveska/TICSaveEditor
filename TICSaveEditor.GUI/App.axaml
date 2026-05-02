@@ -23,6 +23,12 @@
         <DataTemplate DataType="vm:CombatSetEditorViewModel">
             <v:CombatSetEditorView/>
         </DataTemplate>
+        <DataTemplate DataType="vm:UnitDetailViewModel">
+            <v:UnitDetailView/>
+        </DataTemplate>
+        <DataTemplate DataType="vm:LiveEditorViewModel">
+            <v:LiveEditorView/>
+        </DataTemplate>
         <local:ViewLocator/>
     </Application.DataTemplates>
 

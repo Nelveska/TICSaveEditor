@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             x:Class="TICSaveEditor.GUI.Views.UnitDetailView"
+             x:DataType="vm:UnitDetailViewModel">
+    <DockPanel LastChildFill="True" Margin="6" MinWidth="500">
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Unit — " FontWeight="Bold"/>
+                <TextBlock Text="{CompiledBinding UnitDisplayName}" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TabControl>
+            <TabItem Header="Live">
+                <ContentControl Content="{CompiledBinding Live}"/>
+            </TabItem>
+            <TabItem Header="Combat Sets">
+                <ContentControl Content="{CompiledBinding CombatSets}"/>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
+</UserControl>

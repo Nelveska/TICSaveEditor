@@ -91,6 +91,11 @@ public class UnitSaveDataCombatSetIntegrationTests
             _ = unit.CombatSets[i].ReactionAbility;
             _ = unit.CombatSets[i].SupportAbility;
             _ = unit.CombatSets[i].MovementAbility;
+            _ = unit.CombatSets[i].Rh;
+            _ = unit.CombatSets[i].Lh;
+            _ = unit.CombatSets[i].Head;
+            _ = unit.CombatSets[i].Armor;
+            _ = unit.CombatSets[i].Accessory;
         }
 
         var output = new byte[600];
@@ -186,6 +191,33 @@ public class UnitSaveDataCombatSetIntegrationTests
         Assert.Equal((short)0, unit.CombatSets[1].Skillset1);
         Assert.Equal((ushort)0, unit.CombatSets[1].ReactionAbility);
         Assert.Equal((ushort)0, unit.CombatSets[1].SupportAbility);
+    }
+
+    [Fact]
+    public void Mutating_item_slot_on_one_CombatSet_does_not_affect_others()
+    {
+        // CS1.Rh writes to unit-relative 0x126 + 88 + 0x42 = 0x1C0..0x1C1.
+        // Other presets must remain at default; other typed slots on CS1 stay at default;
+        // and CS1's own non-Rh item slots stay zero.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[1].Rh = 0xCAFE;
+
+        Assert.Equal((ushort)0xCAFE, unit.CombatSets[1].Rh);
+        Assert.Equal((ushort)0,      unit.CombatSets[0].Rh);
+        Assert.Equal((ushort)0,      unit.CombatSets[2].Rh);
+
+        // Other item slots on CS1 stay at default.
+        Assert.Equal((ushort)0, unit.CombatSets[1].Lh);
+        Assert.Equal((ushort)0, unit.CombatSets[1].Head);
+        Assert.Equal((ushort)0, unit.CombatSets[1].Armor);
+        Assert.Equal((ushort)0, unit.CombatSets[1].Accessory);
+
+        // Other typed accessors on CS1 stay at default.
+        Assert.Equal((short)0,  unit.CombatSets[1].Skillset0);
+        Assert.Equal((short)0,  unit.CombatSets[1].Skillset1);
+        Assert.Equal((ushort)0, unit.CombatSets[1].ReactionAbility);
+        Assert.Equal((ushort)0, unit.CombatSets[1].SupportAbility);
+        Assert.Equal((ushort)0, unit.CombatSets[1].MovementAbility);
     }
 
     [Fact]

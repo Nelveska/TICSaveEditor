@@ -338,4 +338,212 @@ public class CombatSetTests
         entry.ReactionAbility = 0x42; // same value
         Assert.DoesNotContain(nameof(CombatSet.ReactionAbility), fired);
     }
+
+    [Fact]
+    public void Setting_Name_to_existing_value_does_not_fire()
+    {
+        // Idempotent setter: same-value writes (post-clamp + zero-pad) should be a no-op.
+        // Without this, the GUI editor's TextBox two-way binding would spuriously dirty-mark
+        // the parent SaveFile on identity-rebind. Comparison is byte-level against the
+        // 16-byte clamped+padded form, mirroring the other typed CombatSet setters.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Name = "TankBuild";
+
+        var entry = unit.CombatSets[0];
+        var fired = new List<string>();
+        ((INotifyPropertyChanged)entry).PropertyChanged +=
+            (_, e) => fired.Add(e.PropertyName ?? string.Empty);
+
+        entry.Name = "TankBuild"; // same value
+        Assert.DoesNotContain(nameof(CombatSet.Name), fired);
+    }
+
+    // ===== Items (Phase 2 fellow-traveler, 2026-05-01) =====
+    // Slot ordering: 0=Rh @ 0x42, 1=Lh @ 0x44, 2=Head @ 0x46, 3=Armor @ 0x48, 4=Accessory @ 0x4A.
+
+    [Fact]
+    public void Rh_round_trips_unsigned_short()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Rh = 0x1234;
+        Assert.Equal(0x1234, unit.CombatSets[0].Rh);
+    }
+
+    [Fact]
+    public void Lh_round_trips_unsigned_short()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[1].Lh = 0xABCD;
+        Assert.Equal(0xABCD, unit.CombatSets[1].Lh);
+    }
+
+    [Fact]
+    public void Head_round_trips_unsigned_short()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[2].Head = 0x009D;
+        Assert.Equal(0x009D, unit.CombatSets[2].Head);
+    }
+
+    [Fact]
+    public void Armor_round_trips_unsigned_short()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Armor = 0x00BA;
+        Assert.Equal(0x00BA, unit.CombatSets[0].Armor);
+    }
+
+    [Fact]
+    public void Accessory_round_trips_unsigned_short()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[1].Accessory = 0x00D0;
+        Assert.Equal(0x00D0, unit.CombatSets[1].Accessory);
+    }
+
+    [Fact]
+    public void Rh_writes_LE_bytes_at_section_relative_0x42()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Rh = 0xBEEF;
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0xEF, output[0x126 + 0x42]);
+        Assert.Equal(0xBE, output[0x126 + 0x43]);
+    }
+
+    [Fact]
+    public void Lh_writes_LE_bytes_at_section_relative_0x44()
+    {
+        // CS1 starts at unit-relative 0x126 + 88 = 0x17E.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[1].Lh = 0x1234;
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0x34, output[0x126 + 88 + 0x44]);
+        Assert.Equal(0x12, output[0x126 + 88 + 0x45]);
+    }
+
+    [Fact]
+    public void Head_writes_LE_bytes_at_section_relative_0x46()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Head = 0x5678;
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0x78, output[0x126 + 0x46]);
+        Assert.Equal(0x56, output[0x126 + 0x47]);
+    }
+
+    [Fact]
+    public void Armor_writes_LE_bytes_at_section_relative_0x48()
+    {
+        // CS2 starts at unit-relative 0x126 + 176 = 0x1D6.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[2].Armor = 0x9ABC;
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0xBC, output[0x126 + 176 + 0x48]);
+        Assert.Equal(0x9A, output[0x126 + 176 + 0x49]);
+    }
+
+    [Fact]
+    public void Accessory_writes_LE_bytes_at_section_relative_0x4A()
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Accessory = 0xDEAD;
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0xAD, output[0x126 + 0x4A]);
+        Assert.Equal(0xDE, output[0x126 + 0x4B]);
+    }
+
+    [Fact]
+    public void Item_typed_reads_decode_existing_bytes_correctly()
+    {
+        // Pre-populate CS0+0x42..0x4B with known u16 LE values, verify each typed
+        // accessor decodes its expected slice.
+        var bytes = new byte[600];
+        // Rh = 0x0001
+        bytes[0x126 + 0x42] = 0x01;
+        // Lh = 0x0013 (Broadsword id from Glain attestation)
+        bytes[0x126 + 0x44] = 0x13;
+        // Head = 0x009D (Leather Cap)
+        bytes[0x126 + 0x46] = 0x9D;
+        // Armor = 0x00BA (Clothing)
+        bytes[0x126 + 0x48] = 0xBA;
+        // Accessory = 0x00D0 (per Glain Ramza accessory)
+        bytes[0x126 + 0x4A] = 0xD0;
+
+        var unit = new UnitSaveData(bytes);
+        Assert.Equal(0x0001, unit.CombatSets[0].Rh);
+        Assert.Equal(0x0013, unit.CombatSets[0].Lh);
+        Assert.Equal(0x009D, unit.CombatSets[0].Head);
+        Assert.Equal(0x00BA, unit.CombatSets[0].Armor);
+        Assert.Equal(0x00D0, unit.CombatSets[0].Accessory);
+    }
+
+    [Fact]
+    public void EmptyEquipSlotSentinel_round_trips_through_Rh()
+    {
+        // 0x00FF empty-equip sentinel must round-trip byte-faithfully.
+        var unit = new UnitSaveData(new byte[600]);
+        unit.CombatSets[0].Rh = UnitSaveData.EmptyEquipSlotSentinel;
+        Assert.Equal(UnitSaveData.EmptyEquipSlotSentinel, unit.CombatSets[0].Rh);
+
+        var output = new byte[600];
+        unit.WriteTo(output);
+        Assert.Equal(0xFF, output[0x126 + 0x42]);
+        Assert.Equal(0x00, output[0x126 + 0x43]);
+    }
+
+    [Theory]
+    [InlineData("Rh")]
+    [InlineData("Lh")]
+    [InlineData("Head")]
+    [InlineData("Armor")]
+    [InlineData("Accessory")]
+    public void Setting_item_slot_fires_PropertyChanged_on_the_entry(string propertyName)
+    {
+        var unit = new UnitSaveData(new byte[600]);
+        var entry = unit.CombatSets[1];
+
+        var fired = new List<string>();
+        ((INotifyPropertyChanged)entry).PropertyChanged +=
+            (_, e) => fired.Add(e.PropertyName ?? string.Empty);
+
+        // Mutate the named slot via reflection on the property setter (single-property
+        // contract — each item property fires its own INPC name on mutation).
+        var prop = typeof(CombatSet).GetProperty(propertyName)!;
+        prop.SetValue(entry, (ushort)0x4242);
+
+        Assert.Contains(propertyName, fired);
+    }
+
+    [Theory]
+    [InlineData("Rh")]
+    [InlineData("Lh")]
+    [InlineData("Head")]
+    [InlineData("Armor")]
+    [InlineData("Accessory")]
+    public void Setting_item_slot_to_existing_value_does_not_fire(string propertyName)
+    {
+        // Idempotent setter contract: same-value writes are byte-level no-ops.
+        var unit = new UnitSaveData(new byte[600]);
+        var prop = typeof(CombatSet).GetProperty(propertyName)!;
+        prop.SetValue(unit.CombatSets[0], (ushort)0x4242);
+
+        var entry = unit.CombatSets[0];
+        var fired = new List<string>();
+        ((INotifyPropertyChanged)entry).PropertyChanged +=
+            (_, e) => fired.Add(e.PropertyName ?? string.Empty);
+
+        prop.SetValue(entry, (ushort)0x4242); // same value
+        Assert.DoesNotContain(propertyName, fired);
+    }
 }

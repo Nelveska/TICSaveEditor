@@ -150,7 +150,7 @@ public class CombatSetFixtureDiagnosticsTests
         // unit was edited and which byte ranges within UnitSaveData differ. The byte
         // range within UnitSaveData tells us which sub-region was edited:
         //   0x0E-0x1B: inline equipment (7 × u16)
-        //   0x126-0x17D: CombatSet0 (Name 66 + ItemBytes 10 + AbilityBytes 10 + Job 1 + DH 1 = 88)
+        //   0x126-0x17D: CombatSet0 (Name 66 + Items 10 [Rh/Lh/Head/Armor/Accessory u16] + Skillsets 4 + Abilities 6 + Job 1 + DH 1 = 88)
         //   0x17E-0x1D5: CombatSet1
         //   0x1D6-0x22D: CombatSet2
         // If the change is in a CombatSet block at offset >= 0x42 within the block, the

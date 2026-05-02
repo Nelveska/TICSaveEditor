@@ -8,9 +8,11 @@ namespace TICSaveEditor.GUI.Tests.ViewModels;
 
 /// <summary>
 /// Exercises the CombatSet editor VM against the Baseline real-save fixture.
-/// Construction is via the SaveSlotViewModel.SelectedUnitEditor lazy cache —
-/// matches the production wiring path (UnitListView ListBox SelectedItem →
-/// SaveSlotViewModel.SelectedUnit → SelectedUnitEditor). Tests cover:
+/// Construction is via the SaveSlotViewModel.SelectedUnitDetail lazy cache;
+/// the CombatSet editor lives at SelectedUnitDetail.CombatSets (Tab 1 of the
+/// per-unit TabControl host). Matches the production wiring path
+/// (UnitListView ListBox SelectedItem → SaveSlotViewModel.SelectedUnit →
+/// SelectedUnitDetail → .CombatSets). Tests cover:
 /// - 3-preset surface
 /// - selection lifecycle (null/empty collapse, cached reference equality)
 /// - two-way binding round-trip (Name, Job, Skillset, Ability fields)
@@ -42,7 +44,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Editor_exposes_three_presets()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor;
+        var editor = slot.SelectedUnitDetail?.CombatSets;
         Assert.NotNull(editor);
         Assert.Equal(3, editor!.Presets.Count);
     }
@@ -57,26 +59,26 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         var slot = vm.Slots.First(s => !s.IsEmpty);
         var emptyUnit = slot.Units.First(u => u.IsEmpty);
         slot.SelectedUnit = emptyUnit;
-        Assert.Null(slot.SelectedUnitEditor);
+        Assert.Null(slot.SelectedUnitDetail?.CombatSets);
     }
 
     [Fact]
     public void Null_selection_has_null_editor()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        Assert.NotNull(slot.SelectedUnitEditor);
+        Assert.NotNull(slot.SelectedUnitDetail?.CombatSets);
         slot.SelectedUnit = null;
-        Assert.Null(slot.SelectedUnitEditor);
+        Assert.Null(slot.SelectedUnitDetail?.CombatSets);
     }
 
     [Fact]
     public void Selection_cycle_returns_cached_editor_reference()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var first = slot.SelectedUnitEditor;
+        var first = slot.SelectedUnitDetail?.CombatSets;
         slot.SelectedUnit = null;
         slot.SelectedUnit = unit;
-        var second = slot.SelectedUnitEditor;
+        var second = slot.SelectedUnitDetail?.CombatSets;
         Assert.Same(first, second);
     }
 
@@ -84,10 +86,10 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Distinct_units_yield_distinct_cached_editors()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var firstEditor = slot.SelectedUnitEditor;
+        var firstEditor = slot.SelectedUnitDetail?.CombatSets;
         var otherUnit = slot.Units.First(u => !u.IsEmpty && u.Model != unit.Model);
         slot.SelectedUnit = otherUnit;
-        var secondEditor = slot.SelectedUnitEditor;
+        var secondEditor = slot.SelectedUnitDetail?.CombatSets;
         Assert.NotSame(firstEditor, secondEditor);
     }
 
@@ -95,7 +97,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Setting_Name_mutates_underlying_CombatSet()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         editor.Presets[0].Name = "TankBuild";
         Assert.Equal("TankBuild", unit.Model.CombatSets[0].Name);
     }
@@ -104,7 +106,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Setting_SelectedJob_mutates_underlying_Job_byte()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var targetJob = editor.Presets[0].JobOptions.First(j => j.Id != unit.Model.CombatSets[0].Job);
         editor.Presets[0].SelectedJob = targetJob;
         Assert.Equal((byte)targetJob.Id, unit.Model.CombatSets[0].Job);
@@ -114,7 +116,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Setting_SelectedSkillset0_mutates_underlying_short()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var target = editor.Presets[0].SkillsetOptions.First(c => c.Id != unit.Model.CombatSets[0].Skillset0);
         editor.Presets[0].SelectedSkillset0 = target;
         Assert.Equal((short)target.Id, unit.Model.CombatSets[0].Skillset0);
@@ -124,7 +126,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Setting_SelectedReaction_mutates_underlying_ushort()
     {
         var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var target = editor.Presets[0].ReactionOptions.First(a => a.Id != unit.Model.CombatSets[0].ReactionAbility);
         editor.Presets[0].SelectedReaction = target;
         Assert.Equal((ushort)target.Id, unit.Model.CombatSets[0].ReactionAbility);
@@ -142,12 +144,12 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
 
         // Coerce a Job byte that's outside the bundled table BEFORE selecting the
         // unit. The editor builds option lists at construction; subsequent
-        // selection triggers lazy-cache via SelectedUnitEditor getter.
+        // selection triggers lazy-cache via SelectedUnitDetail getter.
         unit.Model.CombatSets[0].Job = 0xFE;
         Assert.False(_fixture.Context.TryGetJob(0xFE, out _));
 
         slot.SelectedUnit = unit;
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var first = editor.Presets[0].JobOptions[0];
         Assert.Equal(0xFE, first.Id);
         Assert.StartsWith("Unknown Job", first.Name);
@@ -159,7 +161,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void ReactionOptions_only_contains_Reaction_type_abilities()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         // Allow the synthetic Unknown sentinel (empty AbilityType); every other
         // entry must be exact-match "Reaction".
@@ -174,7 +176,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void SupportOptions_only_contains_Support_type_abilities()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         foreach (var ability in entry.SupportOptions)
         {
@@ -187,7 +189,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void MovementOptions_only_contains_Movement_type_abilities()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         foreach (var ability in entry.MovementOptions)
         {
@@ -200,7 +202,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void SkillsetOptions_excludes_null_or_empty_named_entries()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         Assert.All(entry.SkillsetOptions, c => Assert.False(string.IsNullOrEmpty(c.Name)));
     }
@@ -209,7 +211,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void JobOptions_excludes_null_or_empty_named_entries()
     {
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         Assert.All(entry.JobOptions, j => Assert.False(string.IsNullOrEmpty(j.Name)));
     }
@@ -231,7 +233,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         unit.Model.CombatSets[0].ReactionAbility = (ushort)supportAbility.Id;
 
         slot.SelectedUnit = unit;
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var first = editor.Presets[0].ReactionOptions[0];
         Assert.Equal(supportAbility.Id, first.Id);
         Assert.StartsWith("Unknown Ability", first.Name);
@@ -245,7 +247,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // JobCommand Keys 1-3 (Attack / Evasive Stance / Reequip) are universal
         // battle-menu commands, not skillsets. Real skillsets start at Key 5.
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var entry = slot.SelectedUnitEditor!.Presets[0];
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
         foreach (var c in entry.SkillsetOptions)
         {
             if (c.Name.StartsWith("Unknown Skillset")) continue;  // synthetic sentinel
@@ -260,7 +262,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // "MARKED FOR DELETION - REPORT IF DISPLAYED" (Key 440, AbilityType=Reaction).
         // Localization-team marker for cut content; must not appear in any combo.
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var entry = slot.SelectedUnitEditor!.Presets[0];
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
         foreach (var combo in new[] { entry.ReactionOptions, entry.SupportOptions, entry.MovementOptions })
             Assert.DoesNotContain(combo, a => a.Name.StartsWith("MARKED FOR DELETION", System.StringComparison.Ordinal));
     }
@@ -273,7 +275,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // through a different code path; setting it via this editor's CombatSet
         // slot is non-functional. All four must be filtered from R/S/M combos.
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var entry = slot.SelectedUnitEditor!.Presets[0];
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
         var blocked = new[] { 0, 508, 509, 510 };
         foreach (var combo in new[] { entry.ReactionOptions, entry.SupportOptions, entry.MovementOptions })
         foreach (var id in blocked)
@@ -287,7 +289,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // "CT 0" / "No Charge" (per user 2026-05-01). The editor must rename the
         // display Name via record-with cloning; entry should appear in Support combo.
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var entry = slot.SelectedUnitEditor!.Presets[0];
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
         var renamed = entry.SupportOptions.FirstOrDefault(a => a.Id == 483);
         Assert.NotNull(renamed);
         Assert.Equal("CT0/No Charge", renamed!.Name);
@@ -302,7 +304,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // Key 508 (excluded as non-functional Stealth). If a future bundle update
         // adds new A### Names without rename overrides, this test catches them.
         var (_, slot, _) = LoadBaselineWithPopulatedUnit();
-        var entry = slot.SelectedUnitEditor!.Presets[0];
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
         var rx = new System.Text.RegularExpressions.Regex(@"^A\d+$");
         foreach (var combo in new[] { entry.ReactionOptions, entry.SupportOptions, entry.MovementOptions })
         {
@@ -315,7 +317,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Mutating_preset_marks_parent_file_dirty()
     {
         var (vm, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         Assert.False(vm.Model.IsDirty);
 
         editor.Presets[0].Name = "DirtyTest";
@@ -327,7 +329,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
     public void Idempotent_setter_does_not_mark_dirty()
     {
         var (vm, slot, unit) = LoadBaselineWithPopulatedUnit();
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
         var entry = editor.Presets[0];
         var originalJob = entry.SelectedJob;
         Assert.NotNull(originalJob);
@@ -336,14 +338,223 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         // Same-value write through SelectedJob — UnitSaveData.SetCombatSetJob has
         // an explicit idempotency check ("if (slot.Job == value) return;") that
         // suppresses both the model PropertyChanged AND the downstream MarkDirty.
-        // Other CS typed setters (Skillset/Ability) follow the same pattern.
-        // Name is the lone exception today (re-writes the 16-byte buffer
-        // unconditionally and fires NotifyOrQueue) — flagged for follow-up; not
-        // a v0.1 blocker since user-driven name edits are uncommon and dirty-on-
-        // no-op only worsens save-prompt UX, not correctness.
+        // All CS typed setters (Skillset/Ability/Item/Name) follow the same pattern
+        // as of 2026-05-01.
         entry.SelectedJob = originalJob;
 
         Assert.False(vm.Model.IsDirty);
+    }
+
+    // ===== Item slot ComboBoxes (Phase 2 fellow-traveler, 2026-05-01) =====
+
+    private static readonly System.Collections.Generic.HashSet<string> RhLhCategories = new()
+    {
+        "Knife", "NinjaBlade", "Sword", "Axe", "Flail", "Polearm", "Pole", "Rod",
+        "Staff", "Bow", "Crossbow", "Gun", "Instrument", "Book", "Katana",
+        "KnightSword", "Bag", "Shield",
+    };
+    private static readonly System.Collections.Generic.HashSet<string> HeadCategories = new()
+    {
+        "Helmet", "Hat", "HairAdornment",
+    };
+    private static readonly System.Collections.Generic.HashSet<string> ArmorCategories = new()
+    {
+        "Armor", "Robe", "Cloth", "Clothing",
+    };
+    private static readonly System.Collections.Generic.HashSet<string> AccessoryCategories = new()
+    {
+        "Armguard", "Armlet", "Cloak", "Perfume", "Ring", "Shoes",
+    };
+
+    [Fact]
+    public void RhOptions_only_contains_weapon_or_shield_categories()
+    {
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var item in entry.RhOptions)
+        {
+            if (item.Name == "(Empty)" || item.Name.StartsWith("Unknown Item")) continue;
+            Assert.Contains(item.ItemCategory, RhLhCategories);
+        }
+    }
+
+    [Fact]
+    public void LhOptions_only_contains_weapon_or_shield_categories()
+    {
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var item in entry.LhOptions)
+        {
+            if (item.Name == "(Empty)" || item.Name.StartsWith("Unknown Item")) continue;
+            Assert.Contains(item.ItemCategory, RhLhCategories);
+        }
+    }
+
+    [Fact]
+    public void HeadOptions_only_contains_head_categories()
+    {
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var item in entry.HeadOptions)
+        {
+            if (item.Name == "(Empty)" || item.Name.StartsWith("Unknown Item")) continue;
+            Assert.Contains(item.ItemCategory, HeadCategories);
+        }
+    }
+
+    [Fact]
+    public void ArmorOptions_only_contains_armor_categories()
+    {
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var item in entry.ArmorOptions)
+        {
+            if (item.Name == "(Empty)" || item.Name.StartsWith("Unknown Item")) continue;
+            Assert.Contains(item.ItemCategory, ArmorCategories);
+        }
+    }
+
+    [Fact]
+    public void AccessoryOptions_only_contains_accessory_categories()
+    {
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var item in entry.AccessoryOptions)
+        {
+            if (item.Name == "(Empty)" || item.Name.StartsWith("Unknown Item")) continue;
+            Assert.Contains(item.ItemCategory, AccessoryCategories);
+        }
+    }
+
+    [Fact]
+    public void Item_options_always_prepend_Empty_synthetic_at_index_0()
+    {
+        // 0x00FF empty-equip sentinel is a legitimate persisted state; every item
+        // options list must let users select "(Empty)" to clear a slot. Rendered
+        // as a synthetic ItemInfo at index 0 across all 5 slots, regardless of
+        // the current persisted ID.
+        var (_, slot, _) = LoadBaselineWithPopulatedUnit();
+        var entry = slot.SelectedUnitDetail!.CombatSets.Presets[0];
+        foreach (var combo in new[] { entry.RhOptions, entry.LhOptions, entry.HeadOptions, entry.ArmorOptions, entry.AccessoryOptions })
+        {
+            Assert.Equal(0x00FF, combo[0].Id);
+            Assert.Equal("(Empty)", combo[0].Name);
+        }
+    }
+
+    [Fact]
+    public void Setting_SelectedRh_to_Empty_writes_0x00FF()
+    {
+        var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+        var empty = editor.Presets[0].RhOptions[0];
+        Assert.Equal("(Empty)", empty.Name);
+
+        editor.Presets[0].SelectedRh = empty;
+        Assert.Equal((ushort)0x00FF, unit.Model.CombatSets[0].Rh);
+    }
+
+    [Fact]
+    public void Synthetic_Unknown_Item_inserted_when_current_id_missing_from_filter()
+    {
+        // Coerce a non-existent item ID (not 0x00FF, not in any ItemData category)
+        // before selection. The editor must prepend "(Empty)" at index 0, then the
+        // synthetic Unknown Item at index 1, so SelectedItem resolves to the
+        // synthetic carrying the persisted ID.
+        var path = SaveFixturePaths.Enhanced("Baseline");
+        var bytes = File.ReadAllBytes(path);
+        var save = SaveFileLoader.Load(bytes, path);
+        var vm = (ManualSaveFileViewModel)SaveFileViewModelFactory.Create(save, _fixture.Context);
+        var slot = vm.Slots.First(s => !s.IsEmpty);
+        var unit = slot.Units.First(u => !u.IsEmpty);
+
+        const ushort modId = 0x9999;
+        unit.Model.CombatSets[0].Rh = modId;
+        Assert.False(_fixture.Context.TryGetItem(modId, out _));
+
+        slot.SelectedUnit = unit;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+        var combo = editor.Presets[0].RhOptions;
+        Assert.Equal(0x00FF, combo[0].Id);
+        Assert.Equal(modId, combo[1].Id);
+        Assert.StartsWith("Unknown Item", combo[1].Name);
+    }
+
+    [Fact]
+    public void Setting_SelectedRh_mutates_underlying_ushort()
+    {
+        var (_, slot, unit) = LoadBaselineWithPopulatedUnit();
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+        var target = editor.Presets[0].RhOptions
+            .First(i => i.Id != 0x00FF && i.Id != unit.Model.CombatSets[0].Rh);
+        editor.Presets[0].SelectedRh = target;
+        Assert.Equal((ushort)target.Id, unit.Model.CombatSets[0].Rh);
+    }
+
+    [Fact]
+    public void Mutating_item_slot_marks_parent_file_dirty()
+    {
+        var (vm, slot, unit) = LoadBaselineWithPopulatedUnit();
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+        Assert.False(vm.Model.IsDirty);
+
+        var target = editor.Presets[0].RhOptions
+            .First(i => i.Id != 0x00FF && i.Id != unit.Model.CombatSets[0].Rh);
+        editor.Presets[0].SelectedRh = target;
+
+        Assert.True(vm.Model.IsDirty);
+    }
+
+    [Fact]
+    public void Idempotent_item_setter_does_not_mark_dirty()
+    {
+        var (vm, slot, _) = LoadBaselineWithPopulatedUnit();
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+        var entry = editor.Presets[0];
+        var current = entry.SelectedRh;
+        Assert.NotNull(current);
+        Assert.False(vm.Model.IsDirty);
+
+        // Same-value write — UnitSaveData.SetCombatSetItem has byte-level
+        // idempotency that suppresses MarkDirty.
+        entry.SelectedRh = current;
+
+        Assert.False(vm.Model.IsDirty);
+    }
+
+    [Fact]
+    public void Real_fixture_round_trip_persists_edited_preset_Rh()
+    {
+        var path = SaveFixturePaths.Enhanced("Baseline");
+        var bytes = File.ReadAllBytes(path);
+        var save = SaveFileLoader.Load(bytes, path);
+        var vm = (ManualSaveFileViewModel)SaveFileViewModelFactory.Create(save, _fixture.Context);
+        var slot = vm.Slots.First(s => !s.IsEmpty);
+        var unit = slot.Units.First(u => !u.IsEmpty);
+        slot.SelectedUnit = unit;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
+
+        var target = editor.Presets[0].RhOptions
+            .First(i => i.Id != 0x00FF && i.Id != unit.Model.CombatSets[0].Rh);
+        editor.Presets[0].SelectedRh = target;
+
+        var temp = Path.Combine(Path.GetTempPath(), $"tic-cs-rh-roundtrip-{System.Guid.NewGuid():N}.png");
+        try
+        {
+            vm.Model.SaveAs(temp);
+
+            var reloadedBytes = File.ReadAllBytes(temp);
+            var reloaded = SaveFileLoader.Load(reloadedBytes, temp);
+            var reloadedVm = (ManualSaveFileViewModel)SaveFileViewModelFactory.Create(reloaded, _fixture.Context);
+            var reloadedSlot = reloadedVm.Slots[slot.Index];
+            var reloadedUnit = reloadedSlot.Units.First(u => u.Index == unit.Index).Model;
+
+            Assert.Equal((ushort)target.Id, reloadedUnit.CombatSets[0].Rh);
+        }
+        finally
+        {
+            if (File.Exists(temp)) File.Delete(temp);
+        }
     }
 
     [Fact]
@@ -356,7 +567,7 @@ public class CombatSetEditorViewModelTests : IClassFixture<GameDataFixture>
         var slot = vm.Slots.First(s => !s.IsEmpty);
         var unit = slot.Units.First(u => !u.IsEmpty);
         slot.SelectedUnit = unit;
-        var editor = slot.SelectedUnitEditor!;
+        var editor = slot.SelectedUnitDetail!.CombatSets;
 
         const string edited = "RoundTrip!";
         editor.Presets[0].Name = edited;

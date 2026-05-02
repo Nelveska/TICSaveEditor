@@ -23,7 +23,7 @@ public partial class SaveSlotViewModel : ViewModelBase
 {
     private readonly SaveFile? _parentFile;
     private readonly GameDataContext _gameData;
-    private readonly Dictionary<UnitSaveData, CombatSetEditorViewModel> _editorCache = new();
+    private readonly Dictionary<UnitSaveData, UnitDetailViewModel> _detailCache = new();
 
     /// <summary>
     /// Battle-section unit indices that contribute to <see cref="HeroNames"/>:
@@ -143,33 +143,34 @@ public partial class SaveSlotViewModel : ViewModelBase
 
     /// <summary>
     /// Currently selected unit row, two-way bound from <see cref="Views.UnitListView"/>.
-    /// Drives the per-unit detail panel (currently the CombatSet editor); a null
-    /// selection collapses the right panel. See <c>decisions_combatset_editor_ui.md</c>.
+    /// Drives the per-unit detail panel (Live + Combat Sets tabs); a null
+    /// selection collapses the right panel. See
+    /// <c>decisions_unit_detail_tabcontrol.md</c>.
     /// </summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SelectedUnitEditor))]
+    [NotifyPropertyChangedFor(nameof(SelectedUnitDetail))]
     private UnitListItemViewModel? _selectedUnit;
 
     /// <summary>
-    /// Lazy-cached <see cref="CombatSetEditorViewModel"/> for the currently
-    /// selected unit. Returns null when no unit is selected or the unit's model
-    /// is empty (no editor for unallocated battle slots). Reference equality is
-    /// preserved across selection cycles — re-selecting the same unit returns
-    /// the cached editor with any pending edits intact.
+    /// Lazy-cached <see cref="UnitDetailViewModel"/> (composite Live + Combat
+    /// Sets) for the currently selected unit. Returns null when no unit is
+    /// selected or the unit's model is empty. Reference equality is preserved
+    /// across selection cycles — re-selecting the same unit returns the cached
+    /// VM with any pending edits in either tab intact.
     /// </summary>
-    public CombatSetEditorViewModel? SelectedUnitEditor
+    public UnitDetailViewModel? SelectedUnitDetail
     {
         get
         {
             var unit = SelectedUnit;
             if (unit is null || unit.IsEmpty) return null;
             var model = unit.Model;
-            if (!_editorCache.TryGetValue(model, out var editor))
+            if (!_detailCache.TryGetValue(model, out var detail))
             {
-                editor = new CombatSetEditorViewModel(unit, _gameData, _parentFile);
-                _editorCache[model] = editor;
+                detail = new UnitDetailViewModel(unit, _gameData, _parentFile);
+                _detailCache[model] = detail;
             }
-            return editor;
+            return detail;
         }
     }
 

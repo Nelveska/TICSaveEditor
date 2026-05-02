@@ -43,7 +43,7 @@
         <Grid ColumnDefinitions="Auto,6,*">
             <v:UnitListView Grid.Column="0" DataContext="{CompiledBinding}"/>
             <Rectangle Grid.Column="1" Fill="#444"/>
-            <ContentControl Grid.Column="2" Content="{CompiledBinding SelectedUnitEditor}"/>
+            <ContentControl Grid.Column="2" Content="{CompiledBinding SelectedUnitDetail}"/>
         </Grid>
     </DockPanel>
 </UserControl>

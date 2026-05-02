@@ -1,0 +1,87 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TICSaveEditor.GUI.ViewModels"
+             x:Class="TICSaveEditor.GUI.Views.LiveEditorView"
+             x:DataType="vm:LiveEditorViewModel">
+    <ScrollViewer>
+        <Grid ColumnDefinitions="120,*"
+              RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+              Margin="6">
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Job:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="0" Grid.Column="1"
+                      ItemsSource="{CompiledBinding JobOptions}"
+                      SelectedItem="{CompiledBinding SelectedJob}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="Primary:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <TextBlock Grid.Row="1" Grid.Column="1"
+                       Text="{CompiledBinding PrimarySkillsetDisplay}"
+                       Opacity="0.7"
+                       VerticalAlignment="Center" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Text="Secondary:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      ItemsSource="{CompiledBinding SecondaryOptions}"
+                      SelectedItem="{CompiledBinding SelectedSecondary}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Text="Reaction:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="3" Grid.Column="1"
+                      ItemsSource="{CompiledBinding ReactionOptions}"
+                      SelectedItem="{CompiledBinding SelectedReaction}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="Support:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="4" Grid.Column="1"
+                      ItemsSource="{CompiledBinding SupportOptions}"
+                      SelectedItem="{CompiledBinding SelectedSupport}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Movement:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="5" Grid.Column="1"
+                      ItemsSource="{CompiledBinding MovementOptions}"
+                      SelectedItem="{CompiledBinding SelectedMovement}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Right Hand:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="6" Grid.Column="1"
+                      ItemsSource="{CompiledBinding RhOptions}"
+                      SelectedItem="{CompiledBinding SelectedRh}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="7" Grid.Column="0" Text="Left Hand:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="7" Grid.Column="1"
+                      ItemsSource="{CompiledBinding LhOptions}"
+                      SelectedItem="{CompiledBinding SelectedLh}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="8" Grid.Column="0" Text="Head:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="8" Grid.Column="1"
+                      ItemsSource="{CompiledBinding HeadOptions}"
+                      SelectedItem="{CompiledBinding SelectedHead}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="9" Grid.Column="0" Text="Armor:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="9" Grid.Column="1"
+                      ItemsSource="{CompiledBinding ArmorOptions}"
+                      SelectedItem="{CompiledBinding SelectedArmor}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+
+            <TextBlock Grid.Row="10" Grid.Column="0" Text="Accessory:" VerticalAlignment="Center" Margin="0,4,8,4"/>
+            <ComboBox Grid.Row="10" Grid.Column="1"
+                      ItemsSource="{CompiledBinding AccessoryOptions}"
+                      SelectedItem="{CompiledBinding SelectedAccessory}"
+                      DisplayMemberBinding="{Binding Name}"
+                      HorizontalAlignment="Stretch" Margin="0,4,0,4"/>
+        </Grid>
+    </ScrollViewer>
+</UserControl>

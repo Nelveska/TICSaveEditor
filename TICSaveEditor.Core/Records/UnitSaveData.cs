@@ -727,16 +727,19 @@ public class UnitSaveData : INotifyPropertyChanged
         var v = value ?? string.Empty;
         var clampedLen = Math.Min(v.Length, CombatSet.NameByteLength);
 
+        Span<byte> proposed = stackalloc byte[CombatSet.NameByteLength];
+        var bytesWritten = Encoding.ASCII.GetBytes(v.AsSpan(0, clampedLen), proposed);
+        if (bytesWritten < CombatSet.NameByteLength)
+            proposed.Slice(bytesWritten).Clear();
+
         unsafe
         {
             fixed (byte* p = slot.Name)
             {
                 var dest = new Span<byte>(p, CombatSet.NameByteLength);
-                var bytesWritten = Encoding.ASCII.GetBytes(v.AsSpan(0, clampedLen), dest);
-                // Zero-pad remaining bytes within the 16-byte fixed-length name field.
+                if (proposed.SequenceEqual(dest)) return;
                 // NamePadding[50] at CS+0x10 is intentionally untouched.
-                if (bytesWritten < CombatSet.NameByteLength)
-                    dest.Slice(bytesWritten).Clear();
+                proposed.CopyTo(dest);
             }
         }
         NotifyOrQueue(nameof(CombatSets), _combatSetEntries[index]);
@@ -855,6 +858,56 @@ public class UnitSaveData : INotifyPropertyChanged
             }
         }
         NotifyOrQueue(nameof(CombatSets), _combatSetEntries[csIndex]);
+    }
+
+    // Slot ordering: 0=Rh, 1=Lh, 2=Head, 3=Armor, 4=Accessory.
+    // Items occupy 5 separate `fixed byte[2]` fields in CombatSetLayout (CS+0x42..0x4B);
+    // a switch dispatches each slot to its own pinned region rather than relying on
+    // pointer arithmetic across distinct field declarations.
+    internal unsafe ushort GetCombatSetItem(int csIndex, int slot)
+    {
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.ItemSlotCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
+
+        ref var cs = ref GetCombatSetRef(csIndex);
+        switch (slot)
+        {
+            case 0: { fixed (byte* p = cs.Rh)        return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(p, sizeof(ushort))); }
+            case 1: { fixed (byte* p = cs.Lh)        return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(p, sizeof(ushort))); }
+            case 2: { fixed (byte* p = cs.Head)      return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(p, sizeof(ushort))); }
+            case 3: { fixed (byte* p = cs.Armor)     return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(p, sizeof(ushort))); }
+            default:{ fixed (byte* p = cs.Accessory) return BinaryPrimitives.ReadUInt16LittleEndian(new ReadOnlySpan<byte>(p, sizeof(ushort))); }
+        }
+    }
+
+    internal unsafe void SetCombatSetItem(int csIndex, int slot, ushort value)
+    {
+        if ((uint)csIndex >= (uint)CombatSetCount)
+            throw new ArgumentOutOfRangeException(nameof(csIndex));
+        if ((uint)slot >= (uint)CombatSet.ItemSlotCount)
+            throw new ArgumentOutOfRangeException(nameof(slot));
+
+        ref var cs = ref GetCombatSetRef(csIndex);
+        bool changed;
+        switch (slot)
+        {
+            case 0:  { fixed (byte* p = cs.Rh)        { changed = WriteIfChanged(p, value); } break; }
+            case 1:  { fixed (byte* p = cs.Lh)        { changed = WriteIfChanged(p, value); } break; }
+            case 2:  { fixed (byte* p = cs.Head)      { changed = WriteIfChanged(p, value); } break; }
+            case 3:  { fixed (byte* p = cs.Armor)     { changed = WriteIfChanged(p, value); } break; }
+            default: { fixed (byte* p = cs.Accessory) { changed = WriteIfChanged(p, value); } break; }
+        }
+        if (changed) NotifyOrQueue(nameof(CombatSets), _combatSetEntries[csIndex]);
+
+        static unsafe bool WriteIfChanged(byte* p, ushort value)
+        {
+            var dest = new Span<byte>(p, sizeof(ushort));
+            if (BinaryPrimitives.ReadUInt16LittleEndian(dest) == value) return false;
+            BinaryPrimitives.WriteUInt16LittleEndian(dest, value);
+            return true;
+        }
     }
 
     // ===== Empty / active detection =====

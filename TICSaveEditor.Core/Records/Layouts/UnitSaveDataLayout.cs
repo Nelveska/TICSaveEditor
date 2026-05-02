@@ -71,8 +71,9 @@ internal unsafe struct UnitSaveDataLayout
     public byte UnitJoinId;
     public byte CurrentCombatSet;
 
-    // 0x126..0x22D — 3 × CombatSetLayout (88 each = 264). Decomposed in M6
-    // (Name[66] + ItemBytes[10] + AbilityBytes[10] + Job + IsDoubleHand).
+    // 0x126..0x22D — 3 × CombatSetLayout (88 each = 264). Decomposed:
+    // Name[16] + NamePadding[50] + Rh/Lh/Head/Armor/Accessory (5 × u16) +
+    // Skillsets[4] + Abilities[6] + Job + IsDoubleHand.
     public CombatSetLayout CombatSet0;
     public CombatSetLayout CombatSet1;
     public CombatSetLayout CombatSet2;
